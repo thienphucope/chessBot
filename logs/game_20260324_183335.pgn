@@ -1,0 +1,10 @@
+[Event "Chess AI Duel Local Match"]
+[Site "Localhost"]
+[Date "2026.03.24"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "1/2-1/2"]
+
+1. h4 d5 2. h5 b6 3. a3 Nd7 4. Nc3 g6 5. Ne4 g5 6. e3 f5 7. Nd6+ cxd6 8. Ra2 Ne5 9. f3 Nxf3+ 10. gxf3 e5 11. Bc4 d4 12. Bf7+ Kxf7 13. Qe2 Qe7 14. a4 Nf6 15. c4 Nd7 16. Nh3 h6 17. Qf1 Qf6 18. Qd3 b5 19. O-O Be7 20. axb5 Bd8 21. Re1 Nb8 22. Ra6 f4 23. Nxf4 Be7 24. Re2 Re8 25. b6 Kf8 26. c5 Nxa6 27. Ng2 Nxc5 28. Qa3 Kg7 29. Kf2 Qxf3+ 30. Kg1 Qxh5 31. Qa2 Na4 32. Qf7+ Kh8 33. Qxe7 Bb7 34. exd4 Nxb2 35. dxe5 a6 36. Nh4 dxe5 37. Qd7 Qxh4 38. Qh7+ Kxh7 39. Re3 Qg4+ 40. Kf2 Qh3 41. Rd3 Rab8 42. Rd6 Qf3+ 43. Ke1 Rec8 44. Rxh6+ Kxh6 45. Bxb2 Qd3 46. Ba1 Kg6 47. Bd4 Qh3 48. Kf2 Qh7 49. Bc5 Rc7 50. Kg1 Kf7 51. Bb4 Rh8 52. Kf2 Re8 53. Bc5 Qg7 54. Bd4 Rd7 55. Ba1 Rd5 56. Bd4 Rxd4 57. Ke1 Bd5 58. Kf2 Re7 59. Ke1 Qf6 60. Kd1 Re6 61. Kc2 Rg4 62. Kc1 Qh8 63. Kb1 Ra4 64. d4 Qh3 65. dxe5 Ra1+ 66. Kb2 Qh4 67. Kxa1 Rf6 68. exf6 Qh1+ 69. Kb2 Kf8 70. b7 Bf7 71. b8=Q+ Be8 72. Qa7 Bc6 73. Qe3 Bb5 74. Ka3 Bd3 75. Qf2 g4 76. Qg3 Qe1 77. Qb8+ Kf7 78. Qd8 Qg1 79. Qb6 Kg8 80. Qe3 Kh8 81. Qe7 Qg2 82. Qd8+ Kh7 83. Qc8 Qh2 84. Qd7+ Kg6 85. Qb7 Kh6 86. Kb4 Qc7 87. Qb8 Bf5 88. Qg8 Qc4+ 89. Ka3 Qf4 90. Qxg4 Qc4 91. Qh4+ Kg6 92. Qh3 Qb5 93. Qh8 Qe8 94. Qh4 Qf7 95. Qb4 Be6 96. Qf4 Bc8 97. Qf1 Kh6 98. Qa1 Qa2+ 99. Kb4 Qxa1 100. Kc4 Bf5 101. Kb3 Qc3+ 102. Kxc3 Bc2 103. Kd2 Bg6 104. Ke3 Bd3 105. Kxd3 Kg6 106. Kd2 Kh5 107. Kd3 Kg6 108. Kc3 Kh7 109. Kd2 Kg6 110. Ke2 Kh7 111. Kd1 Kh6 112. Kc1 Kg5 113. Kb1 Kh5 114. Ka1 a5 115. Kb2 Kg6 116. Ka3 Kf5 117. f7 Ke6 118. f8=B Kf6 119. Ka4 Ke6 120. Kb3 Kd7 121. Bg7 Kc6 122. Bc3 Kb7 123. Bd4 Kc7 124. Kc3 a4 125. Kb2 Kc8 126. Bc3 Kd7 127. Be1 Kc6 128. Ka1 Kd6 129. Bf2 Kc7 130. Kb2 Kb7 131. Bh4 Kc8 132. Be7 Kb8 133. Bb4 a3+ 134. Ka1 Ka8 135. Bd2 Ka7 136. Bc3 a2 137. Ba5 Kb7 138. Bb6 Ka8 139. Bd4 Kb8 140. Bf6 Kc8 141. Bc3 Kb8 142. Kb2 Ka8 143. Kxa2 1/2-1/2
+

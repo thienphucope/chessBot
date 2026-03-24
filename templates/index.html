@@ -2,165 +2,78 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Chess AI Duel (Bản Offline)</title>
-    <!-- THƯ VIỆN CỤC BỘ -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chess AI Duel - Pro</title>
+    
+    <!-- CSS Thư viện & Custom -->
     <link rel="stylesheet" href="/static/css/chessboard.min.css">
-    <style>
-        body { background: #161512; color: #eee; font-family: sans-serif; text-align: center; }
-        #game-container { display: flex; justify-content: center; gap: 40px; margin-top: 30px; }
-        #board { width: 450px; }
-        .controls { background: #262421; padding: 25px; border-radius: 5px; text-align: left; width: 300px; }
-        #status { font-size: 1.2rem; font-weight: bold; color: #ffd700; margin-bottom: 20px; }
-        .control-group { margin-bottom: 15px; }
-        select { width: 100%; padding: 8px; background: #3c3934; color: #fff; border: 1px solid #4d4b47; border-radius: 3px; }
-        button { width: 100%; padding: 12px; background: #629924; color: #fff; border: none; font-weight: bold; cursor: pointer; border-radius: 3px; margin-top: 10px; }
-        button:hover { background: #76af2e; }
-        .stats { margin-top: 20px; font-size: 0.9rem; border-top: 1px solid #3c3934; padding-top: 10px; }
-        .stats p { display: flex; justify-content: space-between; margin: 5px 0; }
-        .stats span { color: #ffd700; font-weight: bold; }
-    </style>
+    <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
-    <h1>♟️ Chess AI Duel</h1>
-    <div id="game-container">
-        <div id="board-section">
-            <div id="status">Sẵn sàng!</div>
+    <h1>♟️ Chess AI Duel: Professional Edition</h1>
+    <div id="status">Sẵn sàng!</div>
+    
+    <div id="main-layout">
+        <!-- 1. THANH ĐÁNH GIÁ DỌC (EVAL BAR) - Mép trái bàn cờ -->
+        <div id="eval-bar-container">
+            <div id="eval-bar-fill"></div>
+            <span id="eval-text">0.0</span>
+        </div>
+
+        <!-- 2. BÀN CỜ -->
+        <div id="board-container">
             <div id="board"></div>
         </div>
 
-        <aside class="controls">
+        <!-- 3. BIÊN BẢN VÁN CỜ (MOVE HISTORY) -->
+        <div id="history-container">
+            <h3>📝 Biên bản ván cờ</h3>
+            <div id="moves-list">
+                <!-- Nước đi tự động thêm vào đây -->
+            </div>
+        </div>
+
+        <!-- 4. BẢNG ĐIỀU KHIỂN -->
+        <aside id="controls-panel">
             <div class="control-group">
-                <h3 style="color: #fff; border-bottom: 2px solid #fff;">⚪ Quân TRẮNG (Đi trước)</h3>
+                <h3 class="side-white">⚪ Quân TRẮNG</h3>
                 <select id="white-role">
                     <option value="human">Người chơi</option>
-                    <option value="dummy">Bot: Dummy (Random)</option>
+                    <option value="dummy">Bot: Dummy</option>
                     <option value="alpha_beta">Bot: Alpha-Beta</option>
                     <option value="mcts">Bot: MCTS</option>
                 </select>
             </div>
 
             <div class="control-group">
-                <h3 style="color: #aaa; border-bottom: 2px solid #aaa;">⚫ Quân ĐEN (Đi sau)</h3>
+                <h3 class="side-black">⚫ Quân ĐEN</h3>
                 <select id="black-role">
                     <option value="human">Người chơi</option>
-                    <option value="dummy" selected>Bot: Dummy (Random)</option>
+                    <option value="dummy" selected>Bot: Dummy</option>
                     <option value="alpha_beta">Bot: Alpha-Beta</option>
                     <option value="mcts">Bot: MCTS</option>
                 </select>
             </div>
 
-            <div id="ai-stats-box" class="stats" style="display:none;">
-                <h3>Thông số Bot</h3>
-                <p>Thời gian nghĩ: <span id="thinking-time">0</span>s</p>
-                <p>Nodes duyệt: <span id="nodes-count">0</span></p>
-                <p>Đánh giá: <span id="evaluation">0.0</span></p>
+            <div class="action-buttons">
+                <button id="start-btn" class="primary-btn">▶ Bắt đầu</button>
+                <button id="pause-btn" class="danger-btn" style="display:none;">⏸ Tạm dừng</button>
+                <button id="reset-btn" class="secondary-btn">🔄 Chơi mới</button>
             </div>
 
-            <button onclick="resetGame()">Chơi mới</button>
+            <div class="bot-stats">
+                <h3>🤖 Thông số AI</h3>
+                <p>Nghĩ: <span id="thinking-time">0</span>s</p>
+                <p>Nodes: <span id="nodes-count">0</span></p>
+            </div>
         </aside>
     </div>
 
-    <!-- SỬ DỤNG FILE JS CỤC BỘ -->
+    <!-- SCRIPTS -->
     <script src="/static/js/jquery.min.js"></script>
     <script src="/static/js/chessboard.min.js"></script>
     <script src="/static/js/chess.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
-
-    <script>
-        var board = null;
-        var game = new Chess();
-        var $status = $('#status');
-
-        // Khởi tạo Socket.io
-        var socket = io();
-
-        // Lắng nghe trạng thái bàn cờ từ server
-        socket.on('board_state', function(data) {
-            game.load(data.fen);
-            board.position(game.fen());
-            updateStatus();
-        });
-
-        // Lắng nghe khi kết thúc ván
-        socket.on('game_over', function(data) {
-            alert('Ván cờ kết thúc! Kết quả: ' + data.result + '\nLog lưu tại: ' + data.log);
-        });
-
-        // Lắng nghe thay đổi vai trò
-        $('#white-role, #black-role').on('change', function() {
-            var whiteRole = $('#white-role').val();
-            var blackRole = $('#black-role').val();
-            
-            // Hiện bảng thông số nếu có ít nhất 1 Bot
-            if (whiteRole !== 'human' || blackRole !== 'human') $('#ai-stats-box').show();
-            else $('#ai-stats-box').hide();
-
-            socket.emit('set_roles', { white: whiteRole, black: blackRole });
-        });
-
-        function onDragStart (source, piece, position, orientation) {
-            if (game.game_over()) return false;
-            
-            var turn = game.turn(); // 'w' hoặc 'b'
-            var whiteRole = $('#white-role').val();
-            var blackRole = $('#black-role').val();
-            
-            // Nếu đến lượt Trắng mà Trắng là Bot -> Không cho kéo
-            if (turn === 'w' && whiteRole !== 'human') return false;
-            // Nếu đến lượt Đen mà Đen là Bot -> Không cho kéo
-            if (turn === 'b' && blackRole !== 'human') return false;
-
-            // Chỉ được kéo quân của mình
-            if ((turn === 'w' && piece.search(/^b/) !== -1) ||
-                (turn === 'b' && piece.search(/^w/) !== -1)) {
-                return false;
-            }
-        }
-
-        function onDrop (source, target) {
-            var move_uci = source + target;
-            
-            // Thử đi quân cục bộ trước
-            var move = game.move({ from: source, to: target, promotion: 'q' });
-            if (move === null) return 'snapback';
-
-            // Gửi nước đi về server qua socket
-            socket.emit('move', { 'move': move_uci });
-            
-            updateStatus();
-        }
-
-        function onSnapEnd () {
-            board.position(game.fen());
-        }
-
-        function updateStatus () {
-            var status = '';
-            var moveColor = (game.turn() === 'w') ? 'Trắng' : 'Đen';
-
-            if (game.in_checkmate()) status = 'Hết cờ! ' + moveColor + ' thua.';
-            else if (game.in_draw()) status = 'Hòa!';
-            else {
-                status = 'Lượt đi: ' + moveColor;
-                if (game.in_check()) status += ' (ĐANG BỊ CHIẾU!)';
-            }
-            $status.html(status);
-        }
-
-        function resetGame() {
-            socket.emit('reset');
-        }
-
-        var config = {
-            draggable: true,
-            position: 'start',
-            pieceTheme: '/static/img/chesspieces/wikipedia/{piece}.png',
-            onDragStart: onDragStart,
-            onDrop: onDrop,
-            onSnapEnd: onSnapEnd
-        };
-        board = Chessboard('board', config);
-        updateStatus();
-    </script>
+    <script src="/static/js/main.js"></script>
 </body>
 </html>

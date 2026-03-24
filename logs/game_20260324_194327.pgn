@@ -1,0 +1,10 @@
+[Event "Chess AI Duel Local Match"]
+[Site "Localhost"]
+[Date "2026.03.24"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "1-0"]
+
+1. e4 f5 2. exf5 c6 3. Qh5+ g6 4. fxg6 b5 5. g7# 1-0
+
