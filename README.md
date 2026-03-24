@@ -2,125 +2,71 @@
 
 Dự án xây dựng một môi trường chơi Cờ Vua tương tác, cho phép so sánh hiệu quả giữa hai thuật toán tìm kiếm phổ biến trong AI: **Alpha-Beta Pruning** và **Monte Carlo Tree Search (MCTS)**.
 
-## 🌟 Tính năng chính
-- **Giao diện hiện đại:** Sử dụng **Chessground** (engine bàn cờ của Lichess) cho trải nghiệm mượt mà, hỗ trợ kéo thả và hiệu ứng di chuyển.
-- **Hai "não bộ" AI:**
-    - **Alpha-Beta Bot:** Tối ưu hóa thuật toán Minimax với hàm lượng giá (Heuristic) dựa trên vị trí và giá trị quân cờ.
-    - **MCTS Bot:** Thuật toán tìm kiếm cây Monte Carlo dựa trên mô phỏng ngẫu nhiên (Rollouts).
-- **Chế độ chơi đa dạng:** 
-    - Người vs AI (Chọn 1 trong 2 thuật toán).
-    - AI vs AI (Alpha-Beta đấu với MCTS).
-- **Bảng so sánh thời gian thực:** Hiển thị thời gian suy nghĩ, số lượng Node đã duyệt và điểm số đánh giá bàn cờ.
+## 🌟 Tính năng đã hoàn thành
+- **Giao diện Chess.com Style:** Cho phép chọn vai trò (Người hoặc Bot với các thuật toán khác nhau) riêng biệt cho cả quân Trắng và quân Đen.
+- **Chạy Offline 100%:** Toàn bộ thư viện (JQuery, Chessboard.js, Chess.js) và bộ ảnh quân cờ đã được tích hợp nội bộ, không phụ thuộc internet khi demo.
+- **Hệ thống Logging chuyên nghiệp:** Tự động xuất file lịch sử ván cờ định dạng `.pgn` vào thư mục `logs/` sau mỗi trận đấu.
+- **Đồng bộ thời gian thực:** Sử dụng Socket.io để truyền nhận nước đi giữa trình duyệt và server Python.
+- **Dummy Bot:** Bot ngẫu nhiên để kiểm tra luồng xử lý và kết nối.
 
 ---
 
 ## 🛠️ Công nghệ sử dụng (Tech Stack)
 
 ### Backend (AI & Logic)
-- **Ngôn ngữ:** Python 3.x
-- **Thư viện Logic:** `python-chess` (Xử lý luật chơi, FEN, PGN).
-- **Server:** `Flask` + `Flask-SocketIO` (Giao tiếp thời gian thực giữa Python và Web).
+- **Ngôn ngữ:** Python 3.11+ (Quản lý bởi `uv`).
+- **Thư viện Logic:** `python-chess` (Xử lý luật chơi, PGN).
+- **Server:** `Flask` + `Flask-SocketIO` + `eventlet`.
 
 ### Frontend (Giao diện)
-- **Engine bàn cờ:** `Chessground` (JavaScript/TypeScript).
-- **Logic Client:** `chess.js` (Đảm bảo đồng bộ trạng thái bàn cờ với Backend).
-- **Styling:** CSS3 (Lichess theme).
+- **Engine bàn cờ:** `Chessboard.js` (Bản ổn định cao).
+- **Logic Client:** `chess.js` (Đảm bảo đồng bộ trạng thái bàn cờ).
+- **Styling:** CSS3 tối giản theo phong cách Lichess/Chess.com.
 
 ---
 
 ## 🏗️ Kiến trúc hệ thống
 ```text
-[ Người dùng (Browser) ] <--- Socket.io ---> [ Flask Server (Python) ]
-         |                                          |
-   (Chessground UI)                          (python-chess logic)
-         |                                          |
-   (chess.js sync)                          (Alpha-Beta / MCTS)
+[ Trình duyệt (Frontend) ] <--- Socket.io ---> [ Flask Server (app.py) ]
+          |                                             |
+   (Chessboard.js UI)                          (engine/game_manager.py)
+          |                                             |
+   (chess.js sync)                             (algorithms/*.py)
 ```
 
 ---
 
 ## 📅 Lộ trình thực hiện (Roadmap)
 
-### Giai đoạn 1: Core AI & Logic (Backend)
-- [ ] Thiết lập môi trường Python và cài đặt `python-chess`.
+### Giai đoạn 1: Cơ sở hạ tầng (Done ✅)
+- [x] Khởi tạo dự án với `uv` và cấu trúc modular.
+- [x] Xây dựng Flask Server và kết nối Socket.io.
+- [x] Tích hợp bàn cờ Offline với đầy đủ quân cờ.
+- [x] Triển khai `GameManager` để quản lý logic và lưu Log PGN.
+- [x] Dummy Bot (Random) hoàn thành.
+
+### Giai đoạn 2: Phát triển AI (Đang thực hiện 🛠️)
 - [ ] **Alpha-Beta Engine:**
-    - Cài đặt hàm `evaluate()` với Piece-Square Tables.
-    - Cài đặt Minimax + Alpha-Beta Pruning.
-    - Tối ưu hóa: Move Ordering (ưu tiên các nước ăn quân).
+    - [ ] Cài đặt hàm `evaluate()` với Piece-Square Tables.
+    - [ ] Cài đặt Minimax + Alpha-Beta Pruning.
+    - [ ] Tối ưu hóa: Move Ordering.
 - [ ] **MCTS Engine:**
-    - Xây dựng cấu trúc cây (Selection, Expansion, Simulation, Backprop).
-    - Cài đặt công thức UCB1.
+    - [ ] Xây dựng cấu trúc cây (Selection, Expansion, Simulation, Backprop).
+    - [ ] Cài đặt công thức UCB1.
 
-### Giai đoạn 2: Giao tiếp & Web API
-- [ ] Xây dựng Flask Server với các Endpoint/Socket nhận nước đi.
-- [ ] Viết hàm chuyển đổi dữ liệu giữa `python-chess` và `chess.js`.
-
-### Giai đoạn 3: Frontend (GUI)
-- [ ] Tích hợp `Chessground` vào trang web.
-- [ ] Xử lý sự kiện kéo thả (OnMove) để gửi dữ liệu về Backend.
-- [ ] Hiển thị danh sách nước đi (Move History) và bảng thông số so sánh.
-
-### Giai đoạn 4: Thử nghiệm & Báo cáo (10/10)
-- [ ] Chạy thử nghiệm 20 ván đấu AI vs AI.
-- [ ] Thu thập dữ liệu: Tỉ lệ thắng, Thời gian trung bình, Độ sâu tìm kiếm.
-- [ ] Hoàn thiện tài liệu Documentation và so sánh.
-
----
-
-## 🚀 Hướng dẫn cài đặt (Sơ bộ)
-1. **Clone project:**
-   ```bash
-   git clone https://github.com/your-username/chess-ai-duel.git
-   cd chess-ai-duel
-   ```
-2. **Cài đặt thư viện Python:**
-   ```bash
-   pip install flask flask-socketio python-chess
-   ```
-3. **Chạy Server:**
-   ```bash
-   python app.py
-   ```
-4. **Truy cập:** Mở trình duyệt tại `http://127.0.0.1:5000`
-
----
-
-## 📊 Tiêu chí so sánh (Comparison)
-Dự án sẽ thực hiện đánh giá dựa trên:
-1. **Chiến thuật (Strategy):** Khả năng phối hợp quân và bảo vệ Vua.
-2. **Hiệu suất (Performance):** Số Node/giây và thời gian phản hồi.
-3. **Độ ổn định:** MCTS có bị đi "ngáo" ở tàn cuộc không? Alpha-Beta có bị quá tải ở trung cuộc không?
+### Giai đoạn 3: Hoàn thiện & Báo cáo
+- [ ] Chạy ván đấu AI vs AI để thu thập dữ liệu so sánh.
+- [ ] Viết báo cáo chi tiết về hiệu suất và chiến thuật.
 
 ---
 
 ## 📜 Quy tắc viết code (Coding Standards)
-Để đảm bảo dự án đạt chất lượng cao nhất (10/10), toàn bộ mã nguồn phải tuân thủ các quy tắc sau:
+- **Chú thích:** Tất cả các hàm phải có `"""Docstring"""` mô tả Args và Returns.
+- **Modular:** AI nằm trong `algorithms/`, Logic nằm trong `engine/`.
 
-### 1. Chú thích đầy đủ (Serious Docstrings)
-Tất cả các hàm và class phải có chú thích rõ ràng bằng `"""Docstring"""` ngay sau dòng khai báo. Chú thích cần bao gồm:
-- Mô tả chức năng của hàm.
-- Giải thích các tham số đầu vào (Args).
-- Mô tả giá trị trả về (Returns).
-- Các ngoại lệ có thể xảy ra (Raises - nếu có).
+---
 
-*Ví dụ:*
-```python
-def get_best_move(board, depth):
-    """
-    Tìm kiếm nước đi tốt nhất sử dụng thuật toán Minimax kết hợp Alpha-Beta Pruning.
-
-    Args:
-        board (chess.Board): Trạng thái hiện tại của bàn cờ.
-        depth (int): Độ sâu tìm kiếm tối đa.
-
-    Returns:
-        chess.Move: Nước đi tối ưu được tìm thấy.
-    """
-    # Logic code...
-```
-
-### 2. Code Clean & Modular
-- **Tính đóng gói:** Chia nhỏ mã nguồn thành các module riêng biệt (ví dụ: `engine/`, `algorithms/`, `utils/`).
-- **DRY (Don't Repeat Yourself):** Không lặp lại code, sử dụng các hàm helper cho các tác vụ lặp đi lặp lại.
-- **Single Responsibility:** Mỗi hàm/class chỉ nên thực hiện một nhiệm vụ duy nhất và rõ ràng.
-- **Kiểu dữ liệu:** Sử dụng Type Hinting (ví dụ: `def func(a: int) -> str:`) để code dễ đọc và debug.
+## 🚀 Hướng dẫn chạy nhanh
+1. **Cài đặt uv (nếu chưa có):** `pip install uv`
+2. **Chạy server:** `uv run python app.py`
+3. **Truy cập:** `http://127.0.0.1:5000`

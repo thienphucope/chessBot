@@ -30,24 +30,26 @@
 
         <aside class="controls">
             <div class="control-group">
-                <h3>Chế độ chơi</h3>
-                <select id="game-mode">
-                    <option value="hvh">Người vs Người</option>
-                    <option value="pva">Người vs AI (Bot Trắng)</option>
-                    <option value="pvb">Người vs AI (Bot Đen)</option>
-                    <option value="ava">AI vs AI</option>
+                <h3 style="color: #fff; border-bottom: 2px solid #fff;">⚪ Quân TRẮNG (Đi trước)</h3>
+                <select id="white-role">
+                    <option value="human">Người chơi</option>
+                    <option value="dummy">Bot: Dummy (Random)</option>
+                    <option value="alpha_beta">Bot: Alpha-Beta</option>
+                    <option value="mcts">Bot: MCTS</option>
                 </select>
             </div>
 
             <div class="control-group">
-                <h3>Thuật toán</h3>
-                <select id="ai-algo">
-                    <option value="alpha_beta">Alpha-Beta Pruning</option>
-                    <option value="mcts">MCTS</option>
+                <h3 style="color: #aaa; border-bottom: 2px solid #aaa;">⚫ Quân ĐEN (Đi sau)</h3>
+                <select id="black-role">
+                    <option value="human">Người chơi</option>
+                    <option value="dummy" selected>Bot: Dummy (Random)</option>
+                    <option value="alpha_beta">Bot: Alpha-Beta</option>
+                    <option value="mcts">Bot: MCTS</option>
                 </select>
             </div>
 
-            <div class="stats">
+            <div id="ai-stats-box" class="stats" style="display:none;">
                 <h3>Thông số Bot</h3>
                 <p>Thời gian nghĩ: <span id="thinking-time">0</span>s</p>
                 <p>Nodes duyệt: <span id="nodes-count">0</span></p>
@@ -69,20 +71,63 @@
         var game = new Chess();
         var $status = $('#status');
 
+        // Khởi tạo Socket.io
+        var socket = io();
+
+        // Lắng nghe trạng thái bàn cờ từ server
+        socket.on('board_state', function(data) {
+            game.load(data.fen);
+            board.position(game.fen());
+            updateStatus();
+        });
+
+        // Lắng nghe khi kết thúc ván
+        socket.on('game_over', function(data) {
+            alert('Ván cờ kết thúc! Kết quả: ' + data.result + '\nLog lưu tại: ' + data.log);
+        });
+
+        // Lắng nghe thay đổi vai trò
+        $('#white-role, #black-role').on('change', function() {
+            var whiteRole = $('#white-role').val();
+            var blackRole = $('#black-role').val();
+            
+            // Hiện bảng thông số nếu có ít nhất 1 Bot
+            if (whiteRole !== 'human' || blackRole !== 'human') $('#ai-stats-box').show();
+            else $('#ai-stats-box').hide();
+
+            socket.emit('set_roles', { white: whiteRole, black: blackRole });
+        });
+
         function onDragStart (source, piece, position, orientation) {
             if (game.game_over()) return false;
-            // Chỉ cho phép đi quân của mình (trong chế độ Người vs AI sẽ code thêm sau)
-            if ((game.turn() === 'w' && piece.search(/^b/) !== -1) ||
-                (game.turn() === 'b' && piece.search(/^w/) !== -1)) {
+            
+            var turn = game.turn(); // 'w' hoặc 'b'
+            var whiteRole = $('#white-role').val();
+            var blackRole = $('#black-role').val();
+            
+            // Nếu đến lượt Trắng mà Trắng là Bot -> Không cho kéo
+            if (turn === 'w' && whiteRole !== 'human') return false;
+            // Nếu đến lượt Đen mà Đen là Bot -> Không cho kéo
+            if (turn === 'b' && blackRole !== 'human') return false;
+
+            // Chỉ được kéo quân của mình
+            if ((turn === 'w' && piece.search(/^b/) !== -1) ||
+                (turn === 'b' && piece.search(/^w/) !== -1)) {
                 return false;
             }
         }
 
         function onDrop (source, target) {
+            var move_uci = source + target;
+            
+            // Thử đi quân cục bộ trước
             var move = game.move({ from: source, to: target, promotion: 'q' });
             if (move === null) return 'snapback';
+
+            // Gửi nước đi về server qua socket
+            socket.emit('move', { 'move': move_uci });
+            
             updateStatus();
-            // CHỖ NÀY SẼ GỌI AI PHẢN HỒI (SOCKET.IO)
         }
 
         function onSnapEnd () {
@@ -103,15 +148,12 @@
         }
 
         function resetGame() {
-            game.reset();
-            board.start();
-            updateStatus();
+            socket.emit('reset');
         }
 
         var config = {
             draggable: true,
             position: 'start',
-            // TRỎ VỀ THƯ MỤC ẢNH CỤC BỘ TRÊN SERVER CỦA BẠN
             pieceTheme: '/static/img/chesspieces/wikipedia/{piece}.png',
             onDragStart: onDragStart,
             onDrop: onDrop,
