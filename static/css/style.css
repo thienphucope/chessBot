@@ -1,0 +1,98 @@
+body {
+    background: #161512; /* Màu tối của Lichess */
+    color: #BABABA;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+}
+
+#game-container {
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 20px;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+main {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+}
+
+#board-section {
+    position: relative;
+    width: 600px;
+    height: 600px;
+}
+
+#chess-board {
+    width: 100%;
+    height: 100%;
+}
+
+#controls {
+    width: 300px;
+    background: #262421;
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+
+.control-group {
+    margin-bottom: 25px;
+}
+
+h3 {
+    font-size: 1rem;
+    margin-bottom: 10px;
+    color: #fff;
+    border-bottom: 1px solid #3c3934;
+    padding-bottom: 5px;
+}
+
+select {
+    width: 100%;
+    background: #3c3934;
+    color: #fff;
+    border: 1px solid #4d4b47;
+    padding: 8px;
+    border-radius: 3px;
+}
+
+.stats p {
+    font-size: 0.9rem;
+    margin: 10px 0;
+    display: flex;
+    justify-content: space-between;
+}
+
+.stats span {
+    color: #ffd700;
+    font-weight: bold;
+}
+
+#reset-btn {
+    width: 100%;
+    background: #629924;
+    color: #fff;
+    border: none;
+    padding: 12px;
+    font-size: 1rem;
+    font-weight: bold;
+    border-radius: 3px;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: background 0.3s;
+}
+
+#reset-btn:hover {
+    background: #76af2e;
+}
+
+/* Lichess Style for board markers */
+.cg-board-wrap {
+    cursor: pointer;
+}

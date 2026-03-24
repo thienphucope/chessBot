@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Chess AI Duel (Bản Offline)</title>
+    <!-- THƯ VIỆN CỤC BỘ -->
+    <link rel="stylesheet" href="/static/css/chessboard.min.css">
+    <style>
+        body { background: #161512; color: #eee; font-family: sans-serif; text-align: center; }
+        #game-container { display: flex; justify-content: center; gap: 40px; margin-top: 30px; }
+        #board { width: 450px; }
+        .controls { background: #262421; padding: 25px; border-radius: 5px; text-align: left; width: 300px; }
+        #status { font-size: 1.2rem; font-weight: bold; color: #ffd700; margin-bottom: 20px; }
+        .control-group { margin-bottom: 15px; }
+        select { width: 100%; padding: 8px; background: #3c3934; color: #fff; border: 1px solid #4d4b47; border-radius: 3px; }
+        button { width: 100%; padding: 12px; background: #629924; color: #fff; border: none; font-weight: bold; cursor: pointer; border-radius: 3px; margin-top: 10px; }
+        button:hover { background: #76af2e; }
+        .stats { margin-top: 20px; font-size: 0.9rem; border-top: 1px solid #3c3934; padding-top: 10px; }
+        .stats p { display: flex; justify-content: space-between; margin: 5px 0; }
+        .stats span { color: #ffd700; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>♟️ Chess AI Duel</h1>
+    <div id="game-container">
+        <div id="board-section">
+            <div id="status">Sẵn sàng!</div>
+            <div id="board"></div>
+        </div>
+
+        <aside class="controls">
+            <div class="control-group">
+                <h3>Chế độ chơi</h3>
+                <select id="game-mode">
+                    <option value="hvh">Người vs Người</option>
+                    <option value="pva">Người vs AI (Bot Trắng)</option>
+                    <option value="pvb">Người vs AI (Bot Đen)</option>
+                    <option value="ava">AI vs AI</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <h3>Thuật toán</h3>
+                <select id="ai-algo">
+                    <option value="alpha_beta">Alpha-Beta Pruning</option>
+                    <option value="mcts">MCTS</option>
+                </select>
+            </div>
+
+            <div class="stats">
+                <h3>Thông số Bot</h3>
+                <p>Thời gian nghĩ: <span id="thinking-time">0</span>s</p>
+                <p>Nodes duyệt: <span id="nodes-count">0</span></p>
+                <p>Đánh giá: <span id="evaluation">0.0</span></p>
+            </div>
+
+            <button onclick="resetGame()">Chơi mới</button>
+        </aside>
+    </div>
+
+    <!-- SỬ DỤNG FILE JS CỤC BỘ -->
+    <script src="/static/js/jquery.min.js"></script>
+    <script src="/static/js/chessboard.min.js"></script>
+    <script src="/static/js/chess.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+
+    <script>
+        var board = null;
+        var game = new Chess();
+        var $status = $('#status');
+
+        function onDragStart (source, piece, position, orientation) {
+            if (game.game_over()) return false;
+            // Chỉ cho phép đi quân của mình (trong chế độ Người vs AI sẽ code thêm sau)
+            if ((game.turn() === 'w' && piece.search(/^b/) !== -1) ||
+                (game.turn() === 'b' && piece.search(/^w/) !== -1)) {
+                return false;
+            }
+        }
+
+        function onDrop (source, target) {
+            var move = game.move({ from: source, to: target, promotion: 'q' });
+            if (move === null) return 'snapback';
+            updateStatus();
+            // CHỖ NÀY SẼ GỌI AI PHẢN HỒI (SOCKET.IO)
+        }
+
+        function onSnapEnd () {
+            board.position(game.fen());
+        }
+
+        function updateStatus () {
+            var status = '';
+            var moveColor = (game.turn() === 'w') ? 'Trắng' : 'Đen';
+
+            if (game.in_checkmate()) status = 'Hết cờ! ' + moveColor + ' thua.';
+            else if (game.in_draw()) status = 'Hòa!';
+            else {
+                status = 'Lượt đi: ' + moveColor;
+                if (game.in_check()) status += ' (ĐANG BỊ CHIẾU!)';
+            }
+            $status.html(status);
+        }
+
+        function resetGame() {
+            game.reset();
+            board.start();
+            updateStatus();
+        }
+
+        var config = {
+            draggable: true,
+            position: 'start',
+            // TRỎ VỀ THƯ MỤC ẢNH CỤC BỘ TRÊN SERVER CỦA BẠN
+            pieceTheme: '/static/img/chesspieces/wikipedia/{piece}.png',
+            onDragStart: onDragStart,
+            onDrop: onDrop,
+            onSnapEnd: onSnapEnd
+        };
+        board = Chessboard('board', config);
+        updateStatus();
+    </script>
+</body>
+</html>
