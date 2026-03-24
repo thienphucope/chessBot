@@ -3,88 +3,65 @@ import threading
 import datetime
 import chess
 import chess.pgn
+from config import Config
 
 class GameManager:
-    """
-    Lớp quản lý trạng thái ván cờ, xử lý nước đi và lưu trữ log.
-    Thread-safe: dùng board_lock để tránh race condition khi nhiều thread
-    cùng đọc/ghi board.
-    """
-
     def __init__(self):
         self.board = chess.Board()
-        self.board_lock = threading.Lock()
-        self.log_dir = "logs"
-        if not os.path.exists(self.log_dir):
-            os.makedirs(self.log_dir)
+        self.lock = threading.Lock()
+        
+        # Cài đặt từ Config
+        self.white_role = Config.DEFAULT_WHITE_ROLE
+        self.black_role = Config.DEFAULT_BLACK_ROLE
+        self.is_running = False
+        self.turn_count = 0
 
-    def reset_game(self):
-        with self.board_lock:
+        if not os.path.exists(Config.LOG_DIR):
+            os.makedirs(Config.LOG_DIR)
+
+    def reset(self):
+        with self.lock:
             self.board.reset()
+            self.is_running = False
+            self.turn_count = 0
 
-    def make_move(self, move_uci: str) -> bool:
-        """
-        Thực hiện nước đi. Trả về (success, fen_before, fen_after) để
-        app.py tính annotation chính xác mà không lo race condition.
-        """
-        with self.board_lock:
+    def update_settings(self, white=None, black=None, running=None):
+        if white: self.white_role = white
+        if black: self.black_role = black
+        if running is not None: self.is_running = running
+
+    def is_ai_turn(self):
+        if not self.is_running or self.board.is_game_over(): return False
+        role = self.white_role if self.board.turn == chess.WHITE else self.black_role
+        return role != 'human'
+
+    def get_current_ai_algo(self):
+        """Lấy thuật toán của AI hiện tại dựa trên lượt đi."""
+        return self.white_role if self.board.turn == chess.WHITE else self.black_role
+
+    def apply_move(self, move_uci):
+        with self.lock:
             try:
                 move = chess.Move.from_uci(move_uci)
                 if move in self.board.legal_moves:
-                    fen_before = self.board.fen()
-                    turn_before = self.board.turn
+                    san = self.board.san(move)
+                    turn = self.board.turn
                     self.board.push(move)
-                    fen_after = self.board.fen()
-                    return True, fen_before, fen_after, turn_before
-            except ValueError:
-                pass
-        return False, None, None, None
+                    self.turn_count += 1
+                    return True, san, turn
+            except: pass
+        return False, None, None
 
-    def get_fen(self) -> str:
-        with self.board_lock:
-            return self.board.fen()
-
-    def is_game_over(self) -> bool:
-        with self.board_lock:
-            return self.board.is_game_over()
-
-    def is_checkmate(self) -> bool:
-        with self.board_lock:
-            return self.board.is_checkmate()
-
-    def get_san(self, move_uci: str) -> str:
-        """Lấy SAN của nước đi TRƯỚC khi push (cần gọi trước make_move)."""
-        with self.board_lock:
-            try:
-                move = chess.Move.from_uci(move_uci)
-                return self.board.san(move)
-            except Exception:
-                return move_uci
-
-    def get_legal_moves(self):
-        with self.board_lock:
-            return list(self.board.legal_moves)
-
-    def get_turn(self):
-        with self.board_lock:
-            return self.board.turn
-
-    def save_log(self, result_text: str = "*"):
-        with self.board_lock:
+    def save_log(self):
+        with self.lock:
             game = chess.pgn.Game.from_board(self.board)
-        game.headers["Event"] = "Chess AI Duel Local Match"
-        game.headers["Site"] = "Localhost"
-        game.headers["Date"] = datetime.datetime.now().strftime("%Y.%m.%d")
-        game.headers["Result"] = result_text
-
+            res = self.board.result()
+        
+        game.headers["Result"] = res
         filename = f"game_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.pgn"
-        filepath = os.path.join(self.log_dir, filename)
+        path = os.path.join(Config.LOG_DIR, filename)
+        with open(path, "w", encoding="utf-8") as f:
+            print(game, file=f)
+        return res
 
-        with open(filepath, "w", encoding="utf-8") as f:
-            print(game, file=f, end="\n\n")
-
-        print(f"Lưu log ván cờ tại: {filepath}")
-        return filepath
-
-# Singleton dùng chung cho toàn server
 game_engine = GameManager()

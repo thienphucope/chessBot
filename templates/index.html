@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chess AI Duel - Pro</title>
-    
-    <!-- CSS Thư viện & Custom -->
     <link rel="stylesheet" href="/static/css/chessboard.min.css">
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
@@ -14,34 +12,31 @@
     <div id="status">Sẵn sàng!</div>
     
     <div id="main-layout">
-        <!-- 1. THANH ĐÁNH GIÁ DỌC (EVAL BAR) - Mép trái bàn cờ -->
+        <!-- 1. EVAL BAR -->
         <div id="eval-bar-container">
             <div id="eval-bar-fill"></div>
             <span id="eval-text">0.0</span>
         </div>
 
-        <!-- 2. BÀN CỜ -->
+        <!-- 2. BOARD -->
         <div id="board-container">
             <div id="board"></div>
         </div>
 
-        <!-- 3. BIÊN BẢN VÁN CỜ (MOVE HISTORY) -->
+        <!-- 3. MOVE HISTORY -->
         <div id="history-container">
             <h3>📝 Biên bản ván cờ</h3>
-            <div id="moves-list">
-                <!-- Nước đi tự động thêm vào đây -->
-            </div>
+            <div id="moves-list"></div>
         </div>
 
-        <!-- 4. BẢNG ĐIỀU KHIỂN -->
+        <!-- 4. CONTROLS -->
         <aside id="controls-panel">
             <div class="control-group">
                 <h3 class="side-white">⚪ Quân TRẮNG</h3>
                 <select id="white-role">
                     <option value="human">Người chơi</option>
-                    <option value="dummy">Bot: Dummy</option>
-                    <option value="alpha_beta">Bot: Alpha-Beta</option>
-                    <option value="mcts">Bot: MCTS</option>
+                    <option value="dummy">Bot: Dummy (Random)</option>
+                    <option value="stockfish">Bot: Stockfish</option>
                 </select>
             </div>
 
@@ -49,9 +44,8 @@
                 <h3 class="side-black">⚫ Quân ĐEN</h3>
                 <select id="black-role">
                     <option value="human">Người chơi</option>
-                    <option value="dummy" selected>Bot: Dummy</option>
-                    <option value="alpha_beta">Bot: Alpha-Beta</option>
-                    <option value="mcts">Bot: MCTS</option>
+                    <option value="dummy" selected>Bot: Dummy (Random)</option>
+                    <option value="stockfish">Bot: Stockfish</option>
                 </select>
             </div>
 
@@ -69,7 +63,6 @@
         </aside>
     </div>
 
-    <!-- SCRIPTS -->
     <script src="/static/js/jquery.min.js"></script>
     <script src="/static/js/chessboard.min.js"></script>
     <script src="/static/js/chess.min.js"></script>

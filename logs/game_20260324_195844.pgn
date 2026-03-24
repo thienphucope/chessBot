@@ -1,0 +1,10 @@
+[Event "Chess AI Duel Local Match"]
+[Site "Localhost"]
+[Date "2026.03.24"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "1-0"]
+
+1. e4 c6 2. Nf3 h6 3. Bc4 a6 4. Ne5 Qa5 5. Bxf7+ Kd8 6. O-O Qb4 7. d4 Qxd4 8. Qxd4 d6 9. Rd1 d5 10. exd5 g6 11. dxc6+ Nd7 12. Nxd7 h5 13. Nb6+ Kc7 14. Bf4+ e5 15. Bxe5+ Bd6 16. Qxd6+ Kxb6 17. Qc7+ Ka7 18. Bd4# 1-0
+
