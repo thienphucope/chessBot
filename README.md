@@ -40,15 +40,104 @@ Dự án xây dựng một môi trường chơi Cờ Vua tương tác, cho phép
 ### Sử dụng đối tượng chess.Board
 Các bot trong thư mục `algorithms/` nhận một đối tượng `chess.Board` làm tham số đầu vào. Đối tượng này chứa toàn bộ trạng thái bàn cờ hiện tại và cung cấp các phương thức hữu ích:
 
-#### Các phương thức cơ bản:
-- `board.fen()`: Lấy FEN string của bàn cờ (Forsyth-Edwards Notation - định dạng chuẩn để mô tả vị trí bàn cờ)
-- `board.legal_moves`: Danh sách các nước đi hợp lệ (generator)
+#### Các phương thức quan trọng của chess.Board:
+
+**Trạng thái bàn cờ:**
+- `board.fen()`: Lấy FEN string của bàn cờ
+- `board.epd()`: Lấy EPD string (Extended Position Description)
 - `board.turn`: Lượt chơi hiện tại (chess.WHITE hoặc chess.BLACK)
+- `board.fullmove_number`: Số nước đi đầy đủ
+- `board.halfmove_clock`: Số nước đi không ăn quân hoặc di chuyển tốt
+- `board.ply()`: Số ply (nửa nước đi) đã chơi
+
+**Nước đi:**
+- `board.legal_moves`: Generator các nước đi hợp lệ
+- `board.pseudo_legal_moves`: Generator các nước đi pseudo-legal (không kiểm tra chiếu)
+- `board.generate_legal_moves()`: Generator nước đi hợp lệ (tương tự legal_moves)
+- `board.generate_pseudo_legal_moves()`: Generator nước đi pseudo-legal
+- `board.is_legal(move)`: Kiểm tra nước đi có hợp lệ không
+- `board.is_pseudo_legal(move)`: Kiểm tra nước đi pseudo-legal
+- `board.parse_san(san)`: Parse nước đi từ Standard Algebraic Notation
+- `board.parse_uci(uci)`: Parse nước đi từ UCI notation
+- `board.san(move)`: Chuyển nước đi thành SAN string
+- `board.uci(move)`: Chuyển nước đi thành UCI string
+- `board.lan(move)`: Chuyển nước đi thành LAN string
+
+**Kết thúc ván cờ:**
 - `board.is_check()`: Kiểm tra chiếu
 - `board.is_checkmate()`: Kiểm tra chiếu hết
-- `board.is_stalemate()`: Kiểm tra hòa do hết nước đi
-- `board.is_insufficient_material()`: Kiểm tra hòa do thiếu quân
-- `board.can_claim_draw()`: Kiểm tra có thể đòi hòa không
+- `board.is_stalemate()`: Kiểm tra hết nước đi
+- `board.is_insufficient_material()`: Kiểm tra thiếu quân
+- `board.is_game_over()`: Kiểm tra ván cờ kết thúc
+- `board.is_fifty_moves()`: Kiểm tra quy tắc 50 nước
+- `board.is_repetition()`: Kiểm tra lặp lại vị trí
+- `board.outcome()`: Kết quả ván cờ (chess.Outcome object)
+- `board.result()`: Kết quả ván cờ string ('1-0', '0-1', '1/2-1/2', '*')
+- `board.can_claim_draw()`: Có thể đòi hòa không
+- `board.can_claim_fifty_moves()`: Có thể đòi hòa 50 nước
+- `board.can_claim_threefold_repetition()`: Có thể đòi hòa lặp lại
+
+**Quân cờ và vị trí:**
+- `board.piece_at(square)`: Quân cờ tại ô (chess.Piece hoặc None)
+- `board.piece_type_at(square)`: Loại quân tại ô (chess.PAWN, chess.KNIGHT, v.v.)
+- `board.color_at(square)`: Màu quân tại ô (chess.WHITE, chess.BLACK, hoặc None)
+- `board.piece_map()`: Dict của tất cả quân trên bàn {square: piece}
+- `board.pieces(piece_type, color)`: Set các ô chứa quân chỉ định
+- `board.king(color)`: Vị trí vua của màu chỉ định
+
+**Thực hiện nước đi:**
+- `board.push(move)`: Thực hiện nước đi
+- `board.pop()`: Hoàn tác nước đi cuối
+- `board.peek()`: Xem nước đi cuối mà không pop
+- `board.push_san(san)`: Thực hiện nước đi từ SAN
+- `board.push_uci(uci)`: Thực hiện nước đi từ UCI
+- `board.san_and_push(move)`: Thực hiện nước đi và trả về SAN
+- `board.copy()`: Sao chép bàn cờ
+
+**Thông tin nước đi:**
+- `board.is_capture(move)`: Nước đi có ăn quân không
+- `board.is_en_passant(move)`: Nước đi bắt tốt qua đường
+- `board.is_castling(move)`: Nước đi nhập thành
+- `board.is_promotion(move)`: Nước đi phong cấp
+- `board.is_kingside_castling(move)`: Nước đi nhập thành cánh vua
+- `board.is_queenside_castling(move)`: Nước đi nhập thành cánh hậu
+- `board.promoted_to(move)`: Quân được phong cấp thành gì
+- `board.gives_check(move)`: Nước đi có chiếu không
+- `board.is_into_check(move)`: Nước đi có tự đưa vào chiếu không
+- `board.was_into_check()`: Nước đi cuối có đưa vào chiếu không
+
+**Quyền đặc biệt:**
+- `board.has_kingside_castling_rights(color)`: Quyền nhập thành cánh vua
+- `board.has_queenside_castling_rights(color)`: Quyền nhập thành cánh hậu
+- `board.has_castling_rights(color)`: Có quyền nhập thành không
+- `board.clean_castling_rights()`: Xóa quyền nhập thành không hợp lệ
+- `board.has_legal_en_passant()`: Có nước bắt tốt qua đường hợp lệ
+- `board.has_pseudo_legal_en_passant()`: Có nước bắt tốt qua đường pseudo-legal
+
+**Kiểm tra tấn công:**
+- `board.is_attacked_by(color, square)`: Ô có bị tấn công bởi màu không
+- `board.attackers(color, square)`: Set các ô tấn công square
+- `board.attacks(square)`: Set các ô bị tấn công từ square
+- `board.is_pinned(color, square)`: Quân có bị ghim không
+- `board.pin(color, square)`: Quân ghim tại square (nếu có)
+- `board.checkers()`: Set các quân đang chiếu vua
+
+**Chuyển đổi và thao tác bàn cờ:**
+- `board.mirror()`: Lật bàn cờ (trắng thành đen và ngược lại)
+- `board.transform(transform)`: Áp dụng phép biến đổi
+- `board.apply_transform(transform)`: Áp dụng và trả về bàn cờ mới
+- `board.clear()`: Xóa toàn bộ bàn cờ
+- `board.reset()`: Đặt lại về vị trí bắt đầu
+- `board.set_fen(fen)`: Đặt bàn cờ từ FEN
+- `board.set_piece_at(square, piece)`: Đặt quân tại ô
+- `board.remove_piece_at(square)`: Gỡ quân tại ô
+
+**Thông tin bàn cờ:**
+- `board.status()`: Trạng thái bàn cờ (chess.Status)
+- `board.ep_square`: Ô en passant (hoặc None)
+- `board.castling_rights`: Bitmask quyền nhập thành
+- `board.is_valid()`: Bàn cờ có hợp lệ không
+- `board.unicode()`: Biểu diễn bàn cờ bằng Unicode
 
 #### Làm việc với FEN:
 FEN là chuỗi ký tự mô tả đầy đủ trạng thái bàn cờ. Ví dụ: `"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"`
@@ -182,6 +271,122 @@ def simple_eval(board: chess.Board) -> float:
 4. **Đối xứng**: Đen sử dụng `chess.square_mirror()` để lật bàn cờ
 
 Xem `engine/simple_eval.py` để có bảng PST đầy đủ cho tất cả quân cờ.
+
+## Các API và lớp bổ sung trong python-chess
+
+Ngoài các phương thức của `chess.Board`, thư viện còn cung cấp các lớp và hàm tiện ích quan trọng:
+
+### Lớp Move (chess.Move)
+```python
+# Tạo nước đi
+move = chess.Move.from_uci("e2e4")  # Từ UCI string
+move = chess.Move(chess.E2, chess.E4)  # Từ ô nguồn và đích
+
+# Thuộc tính của Move
+move.from_square    # Ô nguồn (0-63)
+move.to_square      # Ô đích (0-63)
+move.promotion      # Quân phong cấp (None hoặc piece_type)
+move.drop           # Quân thả (cho variant)
+
+# Chuyển đổi
+move.uci()          # "e2e4"
+move.xboard()       # Chuyển sang xboard notation
+```
+
+### Lớp Piece (chess.Piece)
+```python
+# Tạo quân cờ
+piece = chess.Piece(chess.PAWN, chess.WHITE)
+piece = chess.Piece.from_symbol("P")  # Từ ký hiệu
+
+# Thuộc tính
+piece.piece_type    # Loại quân (PAWN, KNIGHT, v.v.)
+piece.color         # Màu (WHITE, BLACK)
+
+# Chuyển đổi
+piece.symbol()      # "P", "p", "N", "n", v.v.
+piece.unicode_symbol()  # ♟, ♞, v.v.
+```
+
+### Hằng số quan trọng
+```python
+# Màu sắc
+chess.WHITE         # True
+chess.BLACK         # False
+chess.COLORS        # [False, True]
+
+# Loại quân
+chess.PAWN          # 1
+chess.KNIGHT        # 2
+chess.BISHOP        # 3
+chess.ROOK          # 4
+chess.QUEEN         # 5
+chess.KING          # 6
+chess.PIECE_TYPES   # [1, 2, 3, 4, 5, 6]
+
+# Ô cờ
+chess.A1, chess.H1, chess.A8, chess.H8  # 0, 7, 56, 63
+chess.SQUARES       # range(0, 64)
+chess.SQUARE_NAMES  # ["a1", "b1", ..., "h8"]
+```
+
+### Hàm tiện ích
+```python
+# Chuyển đổi ô
+chess.parse_square("e4")  # 28
+chess.square_name(28)     # "e4"
+chess.square(4, 3)        # e4 (file=4, rank=3)
+
+# Ký hiệu quân cờ
+chess.piece_symbol(chess.PAWN)    # "p"
+chess.piece_name(chess.QUEEN)     # "queen"
+
+# Thao tác bitboard
+chess.lsb(bb)        # Least significant bit
+chess.msb(bb)        # Most significant bit
+chess.popcount(bb)   # Đếm số bit 1
+
+# Ray và attack
+chess.ray(chess.E4, chess.E8)     # Các ô trên đường thẳng
+chess.between(chess.E4, chess.E8) # Các ô giữa hai ô
+```
+
+### Lớp SquareSet (chess.SquareSet)
+```python
+# Tạo SquareSet
+squares = chess.SquareSet()
+squares.add(chess.E4)
+squares.add(chess.E5)
+
+# Thao tác
+squares.remove(chess.E4)
+chess.E4 in squares        # True/False
+len(squares)               # Số ô
+list(squares)              # List các ô
+
+# Phép toán tập hợp
+squares1 | squares2        # Hợp
+squares1 & squares2        # Giao
+squares1 - squares2        # Hiệu
+```
+
+### Lớp Outcome (chess.Outcome)
+```python
+# Kết quả ván cờ
+outcome = board.outcome()
+if outcome:
+    outcome.winner      # chess.WHITE, chess.BLACK, hoặc None
+    outcome.termination # Lý do kết thúc
+```
+
+### Các hàm biến đổi bàn cờ
+```python
+# Lật bàn cờ
+board.mirror()              # Lật theo chiều ngang
+chess.flip_vertical(bb)     # Lật bitboard theo chiều dọc
+chess.flip_horizontal(bb)   # Lật bitboard theo chiều ngang
+chess.flip_diagonal(bb)     # Lật theo đường chéo chính
+```
 
 ## Hướng dẫn hiện thực thuật toán xây dựng cây tìm kiếm (Search Tree Building Algorithm)
 
