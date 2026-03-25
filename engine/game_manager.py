@@ -19,6 +19,7 @@ class GameManager:
         self.white_total_time = 0.0
         self.black_total_time = 0.0
         self.last_move_timestamp = time.perf_counter()
+        self.move_times = []
 
         if not os.path.exists(Config.LOG_DIR):
             os.makedirs(Config.LOG_DIR)
@@ -32,6 +33,7 @@ class GameManager:
             self.white_total_time = 0.0
             self.black_total_time = 0.0
             self.last_move_timestamp = time.perf_counter()
+            self.move_times = []
 
     def update_settings(self, white=None, black=None, running=None):
         if white: self.white_role = white
@@ -61,6 +63,7 @@ class GameManager:
 
     def record_move_time(self, move_time, is_white_turn):
         with self.lock:
+            self.move_times.append(move_time)
             self.total_move_time += move_time
             if is_white_turn:
                 self.white_total_time += move_time
@@ -70,9 +73,24 @@ class GameManager:
 
     def save_log(self):
         with self.lock:
-            game = chess.pgn.Game.from_board(self.board)
+            move_stack = list(self.board.move_stack)
+            move_times = list(self.move_times)
+            white_total = self.white_total_time
+            black_total = self.black_total_time
             res = self.board.result()
-        
+
+        game = chess.pgn.Game()
+        node = game
+        for i, move in enumerate(move_stack):
+            node = node.add_variation(move)
+            if i < len(move_times):
+                node.comment = f"{move_times[i]:.2f}"
+
+        if node.comment:
+            node.comment += f" Total White: {white_total:.2f}, Black: {black_total:.2f}"
+        else:
+            node.comment = f"Total White: {white_total:.2f}, Black: {black_total:.2f}"
+
         game.headers["Result"] = res
         filename = f"game_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.pgn"
         path = os.path.join(Config.LOG_DIR, filename)

@@ -145,8 +145,8 @@ $(function() {
         blackTime = blackTime || 0;
 
         // Add total time display to the controls if it doesn't exist
-        if ($('#total-time-display').length === 0) {
-            $('.bot-stats').append('<p>Tổng thời gian: <span id="total-time-white">0.0s</span> / <span id="total-time-black">0.0s</span></p>');
+        if ($('#total-time-white').length === 0) {
+            $('.bot-stats').append('<p id="total-time-display">Tổng thời gian: <span id="total-time-white">0.0s</span> / <span id="total-time-black">0.0s</span></p>');
         }
 
         $('#total-time-white').text(whiteTime.toFixed(4) + 's');
@@ -184,6 +184,7 @@ $(function() {
     $('#reset-btn').on('click', function() {
         socket.emit('reset');
         $('#moves-list').empty();
+        $('#total-time-display').remove();
         $('#eval-bar-fill').css('height', '50%');
         $('#eval-text').text('0.0');
         isRunning = false;
