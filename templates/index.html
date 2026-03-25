@@ -51,6 +51,15 @@
                 <button id="reset-btn" class="secondary-btn">🔄 Chơi mới</button>
             </div>
 
+            <div class="control-group">
+                <h3>AI Delay</h3>
+                <div class="inline-control">
+                    <input id="ai-delay-input" type="number" min="0" max="10" step="0.1" value="0.5">
+                    <button id="apply-delay-btn" class="secondary-btn" type="button">Cap nhat</button>
+                </div>
+                <p id="ai-delay-message" class="control-hint">Ap dung realtime cho luot AI ke tiep.</p>
+            </div>
+
             <div class="bot-stats">
                 <h3>🤖 Thông số AI</h3>
                 <p>Nghĩ: <span id="thinking-time">0</span>s</p>

@@ -1,4 +1,5 @@
 import time
+import threading
 import chess
 from flask import Flask, render_template
 from flask_socketio import SocketIO, emit
@@ -20,6 +21,11 @@ from algorithms import get_random_move, get_stockfish_move
 app = Flask(__name__)
 app.config['SECRET_KEY'] = Config.SECRET_KEY
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode=Config.ASYNC_MODE)
+ai_task_lock = threading.Lock()
+ai_task_scheduled = False
+ai_task_generation = 0
+runtime_settings_lock = threading.Lock()
+ai_thinking_delay = float(getattr(Config, 'AI_THINKING_DELAY', 0.5))
 
 # --- ROUTES ---
 @app.route('/')
@@ -40,7 +46,40 @@ def sync_board(last_san=None, annotation=None, evaluation=None):
         'evaluation': round(evaluation, 2)
     })
 
-def perform_turn(move_uci):
+def get_ai_thinking_delay():
+    with runtime_settings_lock:
+        return ai_thinking_delay
+
+def set_ai_thinking_delay(delay):
+    global ai_thinking_delay
+    with runtime_settings_lock:
+        ai_thinking_delay = delay
+
+def sync_runtime_settings():
+    socketio.emit('ai_settings_sync', {
+        'thinking_delay': round(get_ai_thinking_delay(), 2)
+    })
+
+def schedule_ai_turn():
+    global ai_task_scheduled
+    if not game_engine.is_ai_turn():
+        return
+
+    with ai_task_lock:
+        if ai_task_scheduled:
+            return
+        ai_task_scheduled = True
+        generation = ai_task_generation
+
+    socketio.start_background_task(run_ai, generation)
+
+def invalidate_ai_tasks():
+    global ai_task_scheduled, ai_task_generation
+    with ai_task_lock:
+        ai_task_generation += 1
+        ai_task_scheduled = False
+
+def perform_turn(move_uci, schedule_next_ai=True):
     fen_before = game_engine.board.fen()
     eval_before = evaluator.get_eval(fen_before)
     
@@ -59,46 +98,93 @@ def perform_turn(move_uci):
     if game_engine.board.is_game_over():
         res = game_engine.save_log()
         socketio.emit('game_over', {'result': res})
-    elif game_engine.is_ai_turn():
-        socketio.start_background_task(run_ai)
+    elif schedule_next_ai and game_engine.is_ai_turn():
+        schedule_ai_turn()
 
-def run_ai():
-    delay = getattr(Config, 'AI_THINKING_DELAY', 0.5)
-    time.sleep(delay)
-    
-    if not game_engine.is_ai_turn(): return
-    algo = game_engine.get_current_ai_algo()
-    move_uci = None
+def run_ai(task_generation):
+    global ai_task_scheduled
 
-    if algo == 'stockfish':
-        move = get_stockfish_move(game_engine.board)
-        if move: move_uci = move.uci()
-    else:
-        move = get_random_move(game_engine.board)
-        if move: move_uci = move.uci()
+    try:
+        while True:
+            with ai_task_lock:
+                if task_generation != ai_task_generation:
+                    return
 
-    if move_uci:
-        perform_turn(move_uci)
+            if not game_engine.is_ai_turn():
+                return
+
+            time.sleep(get_ai_thinking_delay())
+
+            with ai_task_lock:
+                if task_generation != ai_task_generation:
+                    return
+
+            if not game_engine.is_ai_turn():
+                return
+
+            algo = game_engine.get_current_ai_algo()
+            move_uci = None
+
+            if algo == 'stockfish':
+                move = get_stockfish_move(game_engine.board)
+                if move:
+                    move_uci = move.uci()
+            else:
+                move = get_random_move(game_engine.board)
+                if move:
+                    move_uci = move.uci()
+
+            if not move_uci:
+                return
+
+            perform_turn(move_uci, schedule_next_ai=False)
+    finally:
+        with ai_task_lock:
+            if task_generation == ai_task_generation:
+                ai_task_scheduled = False
 
 @socketio.on('move')
 def handle_player_move(data):
-    if not game_engine.is_ai_turn(): perform_turn(data.get('move'))
+    if not game_engine.is_ai_turn():
+        perform_turn(data.get('move'))
+
+@socketio.on('connect')
+def handle_connect():
+    sync_board()
+    emit('game_state_sync', {'is_running': game_engine.is_running})
+    emit('ai_settings_sync', {'thinking_delay': round(get_ai_thinking_delay(), 2)})
 
 @socketio.on('set_roles')
 def handle_settings(data):
     game_engine.update_settings(white=data.get('white'), black=data.get('black'))
-    if game_engine.is_ai_turn(): socketio.start_background_task(run_ai)
 
 @socketio.on('toggle_game')
 def handle_toggle(data):
     game_engine.update_settings(running=data.get('running'))
-    if game_engine.is_ai_turn(): socketio.start_background_task(run_ai)
+    if game_engine.is_ai_turn():
+        schedule_ai_turn()
 
 @socketio.on('reset')
 def handle_reset():
+    invalidate_ai_tasks()
     game_engine.reset()
     sync_board()
     socketio.emit('game_state_sync', {'is_running': False})
+
+@socketio.on('set_ai_delay')
+def handle_set_ai_delay(data):
+    try:
+        delay = float(data.get('delay'))
+    except (TypeError, ValueError):
+        emit('ai_settings_error', {'message': 'AI thinking delay khong hop le.'})
+        return
+
+    if delay < 0 or delay > 10:
+        emit('ai_settings_error', {'message': 'AI thinking delay phai nam trong khoang 0-10 giay.'})
+        return
+
+    set_ai_thinking_delay(delay)
+    sync_runtime_settings()
 
 if __name__ == '__main__':
     socketio.run(app, debug=True)

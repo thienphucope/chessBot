@@ -3,6 +3,8 @@ $(function() {
     var game = new Chess();
     var socket = io();
     var isRunning = false;
+    var rolesLocked = false;
+    var aiDelay = 0.5;
 
     socket.on('board_state', function(data) {
         game.load(data.fen);
@@ -26,9 +28,28 @@ $(function() {
         updateUI();
     });
 
+    socket.on('ai_settings_sync', function(data) {
+        aiDelay = Number(data.thinking_delay || 0);
+        $('#ai-delay-input').val(aiDelay.toFixed(1));
+        $('#thinking-time').text(aiDelay.toFixed(1));
+        setDelayMessage('Da cap nhat AI delay thanh ' + aiDelay.toFixed(1) + 's.', 'success');
+    });
+
+    socket.on('ai_settings_error', function(data) {
+        setDelayMessage(data.message || 'Khong the cap nhat AI delay.', 'error');
+    });
+
     function updateUI() {
+        $('#white-role, #black-role').prop('disabled', rolesLocked);
         if (isRunning) { $('#start-btn').hide(); $('#pause-btn').show(); }
         else { $('#start-btn').show(); $('#pause-btn').hide(); }
+    }
+
+    function setDelayMessage(message, type) {
+        var el = $('#ai-delay-message');
+        el.text(message);
+        el.removeClass('error success');
+        if (type) el.addClass(type);
     }
 
     function updateStatus() {
@@ -101,6 +122,7 @@ $(function() {
 
     $('#start-btn').on('click', function() {
         isRunning = true;
+        rolesLocked = true;
         socket.emit('toggle_game', { running: true });
         updateUI();
     });
@@ -117,11 +139,27 @@ $(function() {
         $('#eval-bar-fill').css('height', '50%');
         $('#eval-text').text('0.0');
         isRunning = false;
+        rolesLocked = false;
         updateUI();
     });
 
     $('#white-role, #black-role').on('change', function() {
         socket.emit('set_roles', { white: $('#white-role').val(), black: $('#black-role').val() });
+    });
+
+    $('#apply-delay-btn').on('click', function() {
+        var value = Number($('#ai-delay-input').val());
+        if (!Number.isFinite(value) || value < 0 || value > 10) {
+            setDelayMessage('AI delay phai nam trong khoang 0-10 giay.', 'error');
+            return;
+        }
+        socket.emit('set_ai_delay', { delay: value });
+    });
+
+    $('#ai-delay-input').on('keydown', function(event) {
+        if (event.key === 'Enter') {
+            $('#apply-delay-btn').trigger('click');
+        }
     });
 
     board = Chessboard('board', {
@@ -133,4 +171,5 @@ $(function() {
         onSnapEnd: function() { board.position(game.fen()); }
     });
     updateStatus();
+    $('#thinking-time').text(aiDelay.toFixed(1));
 });

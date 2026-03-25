@@ -148,6 +148,38 @@ select {
     outline: none;
 }
 
+input[type="number"] {
+    width: 100%;
+    padding: 10px;
+    background: #3c3934;
+    color: #fff;
+    border: 1px solid #4d4b47;
+    border-radius: 4px;
+    outline: none;
+    box-sizing: border-box;
+}
+
+.inline-control {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    align-items: center;
+}
+
+.control-hint {
+    margin: 8px 0 0;
+    font-size: 0.8rem;
+    color: #888;
+}
+
+.control-hint.error {
+    color: #fa412d;
+}
+
+.control-hint.success {
+    color: #81b64c;
+}
+
 .action-buttons { display: flex; flex-direction: column; gap: 10px; }
 
 button {
