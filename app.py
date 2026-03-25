@@ -155,7 +155,6 @@ def run_ai(task_generation):
             if not game_engine.is_ai_turn():
                 return
 
-            move_started_at = time.perf_counter()
             time.sleep(get_ai_thinking_delay())
 
             with ai_task_lock:
@@ -165,6 +164,7 @@ def run_ai(task_generation):
             if not game_engine.is_ai_turn():
                 return
 
+            move_started_at = time.perf_counter()
             algo = game_engine.get_current_ai_algo()
             move_uci = None
 
@@ -177,13 +177,15 @@ def run_ai(task_generation):
                 if move:
                     move_uci = move.uci()
 
+            move_time = time.perf_counter() - move_started_at
+
             if not move_uci:
                 return
 
             perform_turn(
                 move_uci,
                 schedule_next_ai=False,
-                move_time=time.perf_counter() - move_started_at
+                move_time=move_time
             )
     finally:
         with ai_task_lock:

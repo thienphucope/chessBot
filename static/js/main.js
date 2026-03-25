@@ -163,9 +163,43 @@ $(function() {
     }
 
     function onDrop(source, target) {
+        // Check if this is a pawn promotion
+        var piece = game.get(source);
+        if (piece && piece.type === 'p' && ((piece.color === 'w' && target[1] === '8') || (piece.color === 'b' && target[1] === '1'))) {
+            // Show promotion dialog
+            showPromotionDialog(source, target);
+            return;
+        }
+
         var move = game.move({ from: source, to: target, promotion: 'q' });
         if (move === null) return 'snapback';
         socket.emit('move', { 'move': source + target });
+    }
+
+    function showPromotionDialog(source, target) {
+        var color = game.get(source).color;
+        var pieces = color === 'w' ? ['q', 'r', 'b', 'n'] : ['q', 'r', 'b', 'n'];
+
+        // Create dialog
+        var dialog = $('<div id="promotion-dialog" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border: 1px solid black; z-index: 1000;"></div>');
+        dialog.append('<h3>Chọn quân phong cấp:</h3>');
+
+        pieces.forEach(function(piece) {
+            var pieceName = piece === 'q' ? 'Hậu' : piece === 'r' ? 'Xe' : piece === 'b' ? 'Tượng' : 'Mã';
+            var img = $('<img src="/static/img/chesspieces/wikipedia/' + (color === 'w' ? 'w' : 'b') + piece.toUpperCase() + '.png" style="width: 50px; height: 50px; margin: 5px; cursor: pointer;" title="' + pieceName + '">');
+            img.on('click', function() {
+                var move = game.move({ from: source, to: target, promotion: piece });
+                if (move === null) {
+                    alert('Nước đi không hợp lệ!');
+                    return 'snapback';
+                }
+                socket.emit('move', { 'move': source + target + piece });
+                dialog.remove();
+            });
+            dialog.append(img);
+        });
+
+        $('body').append(dialog);
     }
 
     $('#start-btn').on('click', function() {
@@ -215,6 +249,7 @@ $(function() {
         draggable: true,
         position: 'start',
         pieceTheme: '/static/img/chesspieces/wikipedia/{piece}.png',
+        castle: true,
         onDragStart: onDragStart,
         onDrop: onDrop,
         onSnapEnd: function() { board.position(game.fen()); }
