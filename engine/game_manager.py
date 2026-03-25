@@ -10,7 +10,6 @@ class GameManager:
         self.board = chess.Board()
         self.lock = threading.Lock()
         
-        # Cài đặt từ Config
         self.white_role = Config.DEFAULT_WHITE_ROLE
         self.black_role = Config.DEFAULT_BLACK_ROLE
         self.is_running = False
@@ -36,7 +35,6 @@ class GameManager:
         return role != 'human'
 
     def get_current_ai_algo(self):
-        """Lấy thuật toán của AI hiện tại dựa trên lượt đi."""
         return self.white_role if self.board.turn == chess.WHITE else self.black_role
 
     def apply_move(self, move_uci):

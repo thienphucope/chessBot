@@ -13,10 +13,10 @@ class ChessEvaluator:
                 parameters={"Threads": Config.SF_THREADS, "Hash": Config.SF_HASH}
             )
             self.sf.set_depth(Config.SF_DEPTH)
-            print(f"✅ Stockfish (Judge) đã sẵn sàng! Depth: {Config.SF_DEPTH}")
+            print(f"Stockfish (Judge) ready! Depth: {Config.SF_DEPTH}")
         except:
             self.sf = None
-            print(f"⚠️ Cảnh báo: Không khởi động được Stockfish.")
+            print("Warning: Could not start Stockfish.")
 
     def cp_to_wp(self, cp):
         """Chuyển đổi centipawn sang Win Probability."""

@@ -3,13 +3,13 @@ import chess
 
 def get_random_move(board: chess.Board):
     """
-    Chọn một nước đi ngẫu nhiên từ danh sách các nước đi hợp lệ.
+    Selects a random move from the list of legal moves.
     
     Args:
-        board (chess.Board): Trạng thái bàn cờ hiện tại.
+        board (chess.Board): The current board state.
         
     Returns:
-        chess.Move: Nước đi ngẫu nhiên được chọn.
+        chess.Move: The randomly selected move.
     """
     legal_moves = list(board.legal_moves)
     if not legal_moves:
