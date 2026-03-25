@@ -10,8 +10,10 @@ $(function() {
         game.load(data.fen);
         board.position(game.fen());
         updateStatus();
-        updateMoveHistory(data.last_move_san, data.turn_count, data.move_annotation);
+        updateMoveHistory(data.last_move_san, data.turn_count, data.move_annotation, data.move_time, data.total_time);
         updateEvalBar(data.evaluation);
+        updateBoardAnnotations(data.move_annotation, data.last_move_uci);
+        updateTotalTimeDisplay(data.white_total_time, data.black_total_time);
     });
 
     socket.on('game_over', function(data) {
@@ -61,14 +63,14 @@ $(function() {
         $('#status').text(statusText);
     }
 
-    function updateMoveHistory(san, count, annotation) {
+    function updateMoveHistory(san, count, annotation, moveTime, totalTime) {
         if (!san) return;
 
         var annotationHtml = '';
         if (annotation) {
             let colorClass = '';
             let label = annotation;
-            
+
             // Map label to Chess.com classes
             if (annotation === '!!') colorClass = 'brilliant-move';
             else if (annotation === '!') colorClass = 'great-move';
@@ -82,16 +84,18 @@ $(function() {
             annotationHtml = ` <span class="move-annotation ${colorClass}">${label}</span>`;
         }
 
+        var timeHtml = moveTime ? ` <span class="move-time">(${moveTime.toFixed(4)}s)</span>` : '';
+
         var movesList = $('#moves-list');
         if (count % 2 !== 0) { // White
             var moveNum = Math.floor(count / 2) + 1;
             var row = $('<div class="move-row" id="move-row-' + moveNum + '"></div>');
             row.append(`<span class="move-num">${moveNum}.</span>`);
-            row.append(`<span class="move-val">${san}${annotationHtml}</span>`);
+            row.append(`<span class="move-val">${san}${annotationHtml}${timeHtml}</span>`);
             movesList.append(row);
         } else { // Black
             var moveNum = Math.floor(count / 2);
-            $('#move-row-' + moveNum).append(`<span class="move-val">${san}${annotationHtml}</span>`);
+            $('#move-row-' + moveNum).append(`<span class="move-val">${san}${annotationHtml}${timeHtml}</span>`);
         }
         movesList.scrollTop(movesList[0].scrollHeight);
     }
@@ -103,6 +107,50 @@ $(function() {
         var percentage = 50 + (score * 5);
         percentage = Math.max(5, Math.min(95, percentage));
         $('#eval-bar-fill').css('height', percentage + '%');
+    }
+
+    function updateBoardAnnotations(annotation, lastMoveUci) {
+        // Clear previous annotations
+        $('.square-annotation').remove();
+
+        if (!annotation || !lastMoveUci) return;
+
+        // Get the target square of the last move
+        var targetSquare = lastMoveUci.slice(-2);
+
+        // Create annotation element
+        var annotationEl = $('<div class="square-annotation"></div>');
+        annotationEl.text(annotation);
+
+        // Add appropriate class for styling
+        if (annotation === '!!') annotationEl.addClass('brilliant-move');
+        else if (annotation === '!') annotationEl.addClass('great-move');
+        else if (annotation === 'Best') annotationEl.addClass('best-move');
+        else if (annotation === 'Excellent') annotationEl.addClass('excellent-move');
+        else if (annotation === 'Good') annotationEl.addClass('good-move');
+        else if (annotation === '?!') annotationEl.addClass('inaccuracy-move');
+        else if (annotation === '?') annotationEl.addClass('mistake-move');
+        else if (annotation === '??') annotationEl.addClass('blunder-move');
+
+        // Position the annotation on the target square
+        var squareEl = $('#board .square-' + targetSquare);
+        if (squareEl.length > 0) {
+            squareEl.append(annotationEl);
+        }
+    }
+
+    function updateTotalTimeDisplay(whiteTime, blackTime) {
+        // Update total time in the controls panel
+        whiteTime = whiteTime || 0;
+        blackTime = blackTime || 0;
+
+        // Add total time display to the controls if it doesn't exist
+        if ($('#total-time-display').length === 0) {
+            $('.bot-stats').append('<p>Tổng thời gian: <span id="total-time-white">0.0s</span> / <span id="total-time-black">0.0s</span></p>');
+        }
+
+        $('#total-time-white').text(whiteTime.toFixed(4) + 's');
+        $('#total-time-black').text(blackTime.toFixed(4) + 's');
     }
 
     function onDragStart(source, piece, position, orientation) {

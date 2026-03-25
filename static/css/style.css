@@ -116,6 +116,7 @@ h1 { margin: 20px 0; font-weight: 300; letter-spacing: 1px; }
 
 /* CHÚ THÍCH NƯỚC ĐI (CHESS.COM STYLE) */
 .move-annotation { font-size: 0.8rem; margin-left: 3px; }
+.move-time { font-size: 0.7rem; color: #888; margin-left: 2px; }
 .brilliant-move { color: #26c2a3; }
 .great-move { color: #5c8bb0; }
 .best-move { color: #81b64c; }
@@ -124,6 +125,18 @@ h1 { margin: 20px 0; font-weight: 300; letter-spacing: 1px; }
 .inaccuracy-move { color: #f0c361; }
 .mistake-move { color: #e6912c; }
 .blunder-move { color: #fa412d; }
+
+/* ANNOTATIONS ON BOARD SQUARES */
+.square-annotation {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    font-size: 14px;
+    font-weight: bold;
+    z-index: 10;
+    pointer-events: none;
+    text-shadow: 1px 1px 1px rgba(0,0,0,0.7);
+}
 
 /* 4. Bảng điều khiển */
 #controls-panel {

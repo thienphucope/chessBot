@@ -12,7 +12,7 @@ class Config:
     SF_THREADS = 2
     SF_HASH = 256
     SF_DEPTH = 18   
-    SF_AI_DEPTH = 3
+    SF_AI_DEPTH = 18
 
     LOG_DIR = "logs"
     AI_THINKING_DELAY = 0.5

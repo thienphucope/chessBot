@@ -1,6 +1,7 @@
 import os
 import threading
 import datetime
+import time
 import chess
 import chess.pgn
 from config import Config
@@ -9,11 +10,15 @@ class GameManager:
     def __init__(self):
         self.board = chess.Board()
         self.lock = threading.Lock()
-        
+
         self.white_role = Config.DEFAULT_WHITE_ROLE
         self.black_role = Config.DEFAULT_BLACK_ROLE
         self.is_running = False
         self.turn_count = 0
+        self.total_move_time = 0.0
+        self.white_total_time = 0.0
+        self.black_total_time = 0.0
+        self.last_move_timestamp = time.perf_counter()
 
         if not os.path.exists(Config.LOG_DIR):
             os.makedirs(Config.LOG_DIR)
@@ -23,6 +28,10 @@ class GameManager:
             self.board.reset()
             self.is_running = False
             self.turn_count = 0
+            self.total_move_time = 0.0
+            self.white_total_time = 0.0
+            self.black_total_time = 0.0
+            self.last_move_timestamp = time.perf_counter()
 
     def update_settings(self, white=None, black=None, running=None):
         if white: self.white_role = white
@@ -49,6 +58,15 @@ class GameManager:
                     return True, san, turn
             except: pass
         return False, None, None
+
+    def record_move_time(self, move_time, is_white_turn):
+        with self.lock:
+            self.total_move_time += move_time
+            if is_white_turn:
+                self.white_total_time += move_time
+            else:
+                self.black_total_time += move_time
+            return self.total_move_time, self.white_total_time, self.black_total_time
 
     def save_log(self):
         with self.lock:

@@ -33,18 +33,47 @@ def index():
     return render_template('index.html')
 
 # --- CORE LOGIC ---
-def sync_board(last_san=None, annotation=None, evaluation=None):
+def build_board_state(last_san=None, last_move_uci=None, annotation=None, evaluation=None, move_time=None, total_time=None, white_total_time=None, black_total_time=None):
     fen = game_engine.board.fen()
     if evaluation is None:
         evaluation = evaluator.get_eval(fen)
-        
-    socketio.emit('board_state', {
+
+    if move_time is None:
+        move_time = 0.0
+
+    if total_time is None:
+        total_time = game_engine.total_move_time
+
+    if white_total_time is None:
+        white_total_time = game_engine.white_total_time
+
+    if black_total_time is None:
+        black_total_time = game_engine.black_total_time
+
+    return {
         'fen': fen,
         'last_move_san': last_san,
+        'last_move_uci': last_move_uci,
         'move_annotation': annotation,
         'turn_count': game_engine.turn_count,
-        'evaluation': round(evaluation, 2)
-    })
+        'evaluation': round(evaluation, 2),
+        'move_time': round(move_time, 2),
+        'total_time': round(total_time, 2),
+        'white_total_time': round(white_total_time, 2),
+        'black_total_time': round(black_total_time, 2)
+    }
+
+def sync_board(last_san=None, last_move_uci=None, annotation=None, evaluation=None, move_time=None, total_time=None, white_total_time=None, black_total_time=None):
+    socketio.emit('board_state', build_board_state(
+        last_san=last_san,
+        last_move_uci=last_move_uci,
+        annotation=annotation,
+        evaluation=evaluation,
+        move_time=move_time,
+        total_time=total_time,
+        white_total_time=white_total_time,
+        black_total_time=black_total_time
+    ))
 
 def get_ai_thinking_delay():
     with runtime_settings_lock:
@@ -79,22 +108,35 @@ def invalidate_ai_tasks():
         ai_task_generation += 1
         ai_task_scheduled = False
 
-def perform_turn(move_uci, schedule_next_ai=True):
+def perform_turn(move_uci, schedule_next_ai=True, move_time=0.0):
     fen_before = game_engine.board.fen()
     eval_before = evaluator.get_eval(fen_before)
-    
+
     success, san, turn = game_engine.apply_move(move_uci)
-    if not success: return sync_board()
+    if not success:
+        return sync_board()
 
     eval_after = evaluator.get_eval(game_engine.board.fen())
-    
+    is_white_turn = (turn == chess.WHITE)
+    total_time, white_total_time, black_total_time = game_engine.record_move_time(move_time, is_white_turn)
+    game_engine.last_move_timestamp = time.perf_counter()
+
     if game_engine.board.is_checkmate():
         annotation = "!!"
     else:
         annotation = evaluator.get_annotation(eval_before, eval_after, turn)
-    
-    sync_board(last_san=san, annotation=annotation, evaluation=eval_after)
-    
+
+    sync_board(
+        last_san=san,
+        last_move_uci=move_uci,
+        annotation=annotation,
+        evaluation=eval_after,
+        move_time=move_time,
+        total_time=total_time,
+        white_total_time=white_total_time,
+        black_total_time=black_total_time
+    )
+
     if game_engine.board.is_game_over():
         res = game_engine.save_log()
         socketio.emit('game_over', {'result': res})
@@ -113,6 +155,7 @@ def run_ai(task_generation):
             if not game_engine.is_ai_turn():
                 return
 
+            move_started_at = time.perf_counter()
             time.sleep(get_ai_thinking_delay())
 
             with ai_task_lock:
@@ -137,7 +180,11 @@ def run_ai(task_generation):
             if not move_uci:
                 return
 
-            perform_turn(move_uci, schedule_next_ai=False)
+            perform_turn(
+                move_uci,
+                schedule_next_ai=False,
+                move_time=time.perf_counter() - move_started_at
+            )
     finally:
         with ai_task_lock:
             if task_generation == ai_task_generation:
@@ -146,11 +193,12 @@ def run_ai(task_generation):
 @socketio.on('move')
 def handle_player_move(data):
     if not game_engine.is_ai_turn():
-        perform_turn(data.get('move'))
+        move_time = time.perf_counter() - game_engine.last_move_timestamp
+        perform_turn(data.get('move'), move_time=move_time)
 
 @socketio.on('connect')
 def handle_connect():
-    sync_board()
+    emit('board_state', build_board_state())
     emit('game_state_sync', {'is_running': game_engine.is_running})
     emit('ai_settings_sync', {'thinking_delay': round(get_ai_thinking_delay(), 2)})
 
