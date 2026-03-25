@@ -1,70 +1,184 @@
 import chess
-from engine.evaluator import evaluator
+from engine.simple_eval import simple_eval
 
-def alphabeta(board: chess.Board, depth: int, alpha: float, beta: float, maximizing: bool) -> float:
+# Transposition table: zobrist_hash -> (depth, score, flag)
+# flag: 'exact', 'lower', 'upper'
+_tt: dict[int, tuple[int, float, str]] = {}
+_TT_MAX_SIZE = 1_000_000
+
+
+def _get_score(board: chess.Board) -> float:
     """
-    Alpha-Beta pruning algorithm.
+    Score từ góc nhìn của side to move.
+    simple_eval() trả về White-centric
+    → flip nếu Black to move để Negamax hoạt động đúng.
+    """
+    white_score = simple_eval(board)
+    return white_score if board.turn == chess.WHITE else -white_score
+
+
+def _tt_store(key: int, depth: int, score: float, flag: str) -> None:
+    if len(_tt) >= _TT_MAX_SIZE:
+        _tt.clear()
+    _tt[key] = (depth, score, flag)
+
+
+_PIECE_VALUE = {
+    chess.PAWN: 100,
+    chess.KNIGHT: 320,
+    chess.BISHOP: 330,
+    chess.ROOK: 500,
+    chess.QUEEN: 900,
+    chess.KING: 20_000,
+}
+
+
+def _move_order_score(board: chess.Board, move: chess.Move) -> int:
+    """
+    Fast heuristic score for move ordering — no evaluator call needed.
+    Higher = search first.
+    """
+    score = 0
+
+    # MVV-LVA: Most Valuable Victim - Least Valuable Attacker
+    if board.is_capture(move):
+        victim = board.piece_at(move.to_square)
+        attacker = board.piece_at(move.from_square)
+        victim_val = _PIECE_VALUE.get(victim.piece_type, 0) if victim else 0
+        attacker_val = _PIECE_VALUE.get(attacker.piece_type, 100) if attacker else 100
+        score += 10 * victim_val - attacker_val + 20_000  # captures always first
+
+    # Promotions
+    if move.promotion:
+        score += _PIECE_VALUE.get(move.promotion, 0) + 10_000
+
+    # Checks (slightly expensive but worth it at shallow depth)
+    board.push(move)
+    if board.is_check():
+        score += 5_000
+    board.pop()
+
+    return score
+
+def _quiescence(board: chess.Board, alpha: float, beta: float) -> float:
+    """
+    Search only captures/checks until quiet position.
+    Prevents horizon effect on tactical positions.
+    """
+    stand_pat = _get_score(board)
+
+    if stand_pat >= beta:
+        return beta
+    alpha = max(alpha, stand_pat)
+
+    # Only look at captures
+    capture_moves = sorted(
+        [m for m in board.legal_moves if board.is_capture(m)],
+        key=lambda m: _move_order_score(board, m),
+        reverse=True,
+    )
+
+    for move in capture_moves:
+        board.push(move)
+        score = -_quiescence(board, -beta, -alpha)
+        board.pop()
+
+        if score >= beta:
+            return beta
+        alpha = max(alpha, score)
+
+    return alpha
+
+
+def alphabeta(
+    board: chess.Board,
+    depth: int,
+    alpha: float,
+    beta: float,
+) -> float:
+    """
+    Negamax Alpha-Beta with transposition table + quiescence search.
+    Score is always from the perspective of the side to move.
+    """
+    key = board._transposition_key()
+
+    # Transposition table lookup
+    tt_entry = _tt.get(key)
+    if tt_entry and tt_entry[0] >= depth:
+        tt_depth, tt_score, tt_flag = tt_entry
+        if tt_flag == "exact":
+            return tt_score
+        if tt_flag == "lower":
+            alpha = max(alpha, tt_score)
+        elif tt_flag == "upper":
+            beta = min(beta, tt_score)
+        if alpha >= beta:
+            return tt_score
+
+    if board.is_game_over():
+        if board.is_checkmate():
+            return -100_000 - depth  # Prefer faster mates
+        return 0  # Stalemate / draw
+
+    if depth == 0:
+        return _quiescence(board, alpha, beta)
+
+    orig_alpha = alpha
+    best_value = float("-inf")
+
+    moves = sorted(
+        board.legal_moves,
+        key=lambda m: _move_order_score(board, m),
+        reverse=True,
+    )
+
+    for move in moves:
+        board.push(move)
+        score = -alphabeta(board, depth - 1, -beta, -alpha)
+        board.pop()
+
+        if score > best_value:
+            best_value = score
+
+        alpha = max(alpha, score)
+        if alpha >= beta:
+            break  # Beta cutoff
+
+    # Store in transposition table
+    flag = "exact" if orig_alpha < best_value < beta else ("lower" if best_value >= beta else "upper")
+    _tt_store(key, depth, best_value, flag)
+
+    return best_value
+
+
+def get_alphabeta_move(board: chess.Board, depth: int = 3) -> chess.Move | None:
+    """
+    Get the best move using Negamax Alpha-Beta pruning.
 
     Args:
         board: Current board state
-        depth: Search depth remaining
-        alpha: Alpha value for pruning
-        beta: Beta value for pruning
-        maximizing: True if maximizing player (white), False if minimizing (black)
+        depth: Search depth (3 is solid; increase for stronger play)
 
     Returns:
-        Best evaluation score
-    """
-    if depth == 0 or board.is_game_over():
-        # Use evaluator for leaf node evaluation
-        eval_score = evaluator.get_eval(board.fen())
-        return eval_score if maximizing else -eval_score
-
-    if maximizing:
-        max_eval = float('-inf')
-        for move in board.legal_moves:
-            board.push(move)
-            eval_score = alphabeta(board, depth - 1, alpha, beta, False)
-            board.pop()
-            max_eval = max(max_eval, eval_score)
-            alpha = max(alpha, eval_score)
-            if beta <= alpha:
-                break  # Beta cutoff
-        return max_eval
-    else:
-        min_eval = float('inf')
-        for move in board.legal_moves:
-            board.push(move)
-            eval_score = alphabeta(board, depth - 1, alpha, beta, True)
-            board.pop()
-            min_eval = min(min_eval, eval_score)
-            beta = min(beta, eval_score)
-            if beta <= alpha:
-                break  # Alpha cutoff
-        return min_eval
-
-def get_alphabeta_move(board: chess.Board, depth: int = 3) -> chess.Move:
-    """
-    Get the best move using Alpha-Beta pruning.
-
-    Args:
-        board: Current board state
-        depth: Search depth (default 3 for basic playability)
-
-    Returns:
-        Best move found, or None if no moves available
+        Best move found, or None if no legal moves
     """
     if board.is_game_over():
         return None
 
     best_move = None
-    best_value = float('-inf')
-    alpha = float('-inf')
-    beta = float('inf')
+    best_value = float("-inf")
+    alpha = float("-inf")
+    beta = float("inf")
 
-    for move in board.legal_moves:
+    moves = sorted(
+        board.legal_moves,
+        key=lambda m: _move_order_score(board, m),
+        reverse=True,
+    )
+
+    for move in moves:
         board.push(move)
-        move_value = alphabeta(board, depth - 1, alpha, beta, False)
+        move_value = -alphabeta(board, depth - 1, -beta, -alpha)
         board.pop()
 
         if move_value > best_value:

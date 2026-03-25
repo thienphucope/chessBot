@@ -16,7 +16,7 @@ except (ImportError, SyntaxError, AttributeError) as e:
 
 from engine.game_manager import game_engine
 from engine.evaluator import evaluator
-from algorithms import get_random_move, get_stockfish_move
+from algorithms import get_random_move, get_stockfish_move, get_alphabeta_move, get_mcts_move
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = Config.SECRET_KEY
@@ -172,7 +172,15 @@ def run_ai(task_generation):
                 move = get_stockfish_move(game_engine.board)
                 if move:
                     move_uci = move.uci()
-            else:
+            elif algo == 'alphabeta':
+                move = get_alphabeta_move(game_engine.board)
+                if move:
+                    move_uci = move.uci()
+            elif algo == 'mcts':
+                move = get_mcts_move(game_engine.board)
+                if move:
+                    move_uci = move.uci()
+            else:  # dummy/random
                 move = get_random_move(game_engine.board)
                 if move:
                     move_uci = move.uci()

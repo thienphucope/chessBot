@@ -1,111 +1,132 @@
 import math
 import random
 import chess
-from engine.evaluator import evaluator
+from engine.simple_eval import simple_eval
+
 
 class MCTSNode:
+    __slots__ = ('board', 'parent', 'move', 'children', 'visits', 'value', 'untried_moves')
+
     def __init__(self, board: chess.Board, parent=None, move=None):
         self.board = board.copy()
         self.parent = parent
-        self.move = move  # Move that led to this node
-        self.children = []
-        self.visits = 0
-        self.value = 0.0  # Total value accumulated
+        self.move = move            # Move that led to this node
+        self.children: list['MCTSNode'] = []
+        self.visits: int = 0
+        self.value: float = 0.0    # Total value from the perspective of the PARENT (who made the move)
         self.untried_moves = list(board.legal_moves)
 
-    def is_fully_expanded(self):
+    def is_fully_expanded(self) -> bool:
         return len(self.untried_moves) == 0
 
-    def best_child(self, c_param=1.4):
-        """Select child with highest UCT value."""
-        choices_weights = [
-            (child.value / child.visits) + c_param * math.sqrt((2 * math.log(self.visits) / child.visits))
-            for child in self.children
-        ]
-        return self.children[choices_weights.index(max(choices_weights))]
+    def uct_score(self, c_param: float = 1.4) -> float:
+        """UCT score from the perspective of this node's parent (who is choosing among children)."""
+        if self.visits == 0:
+            return float('inf')
+        exploitation = self.value / self.visits
+        exploration = c_param * math.sqrt(math.log(self.parent.visits) / self.visits)
+        return exploitation + exploration
 
-    def expand(self):
-        """Expand by adding a new child node."""
+    def best_child(self, c_param: float = 1.4) -> 'MCTSNode':
+        return max(self.children, key=lambda c: c.uct_score(c_param))
+
+    def expand(self) -> 'MCTSNode':
         move = self.untried_moves.pop()
         new_board = self.board.copy()
         new_board.push(move)
-        child_node = MCTSNode(new_board, parent=self, move=move)
-        self.children.append(child_node)
-        return child_node
+        child = MCTSNode(new_board, parent=self, move=move)
+        self.children.append(child)
+        return child
 
-def simulate_random(board: chess.Board) -> float:
-    """Simulate a random game from current position."""
-    current_board = board.copy()
-    max_moves = 50  # Limit to prevent infinite games
-    moves_count = 0
 
-    while not current_board.is_game_over() and moves_count < max_moves:
-        legal_moves = list(current_board.legal_moves)
-        if not legal_moves:
+def _simulate(board: chess.Board, max_moves: int = 50) -> float:
+    """
+    Random rollout from position. Returns score in [-1, 1] from WHITE's perspective.
+    Uses evaluator at cutoff so non-terminal positions are still meaningful.
+    """
+    sim = board.copy()
+    for _ in range(max_moves):
+        if sim.is_game_over():
             break
-        move = random.choice(legal_moves)
-        current_board.push(move)
-        moves_count += 1
+        sim.push(random.choice(list(sim.legal_moves)))
 
-    # Evaluate final position
-    if current_board.is_game_over():
-        result = current_board.result()
+    if sim.is_game_over():
+        result = sim.result()
         if result == '1-0':
-            return 1.0  # White wins
+            return 1.0
         elif result == '0-1':
-            return -1.0  # Black wins
-        else:
-            return 0.0  # Draw
-    else:
-        # Use evaluator for non-terminal positions
-        eval_score = evaluator.get_eval(current_board.fen())
-        # Convert to win probability-like score
-        return math.tanh(eval_score / 10.0)  # Scale down for reasonable range
+            return -1.0
+        return 0.0
 
-def mcts_search(root: MCTSNode, iterations: int = 1000):
-    """Perform MCTS search for given number of iterations."""
+    # simple_eval() is White-centric centipawn score
+    return math.tanh(simple_eval(sim) / 5.0)
+
+
+def _mcts_iteration(root: MCTSNode) -> None:
+    """One full MCTS iteration: select → expand → simulate → backpropagate."""
+
+    # --- Selection ---
+    node = root
+    while node.is_fully_expanded() and node.children:
+        node = node.best_child()
+
+    # --- Expansion ---
+    if not node.is_fully_expanded() and not node.board.is_game_over():
+        node = node.expand()
+
+    # --- Simulation ---
+    white_score = _simulate(node.board)  # always White-centric
+
+    # --- Backpropagation ---
+    # Each node stores value from its PARENT's perspective (the side that chose to go there).
+    # The parent is the position BEFORE the move, so parent.board.turn is the side that moved.
+    current = node
+    while current is not None:
+        current.visits += 1
+        if current.parent is not None:
+            # parent.board.turn = side that made the move leading to current
+            if current.parent.board.turn == chess.WHITE:
+                current.value += white_score
+            else:
+                current.value += -white_score
+        current = current.parent
+
+
+def mcts_search(root: MCTSNode, iterations: int = 800) -> None:
+    """
+    Sequential MCTS — parallelising tree traversal causes race conditions
+    on visits/value without locks, which breaks UCT math entirely.
+    """
     for _ in range(iterations):
-        # Selection
-        node = root
-        while node.is_fully_expanded() and node.children:
-            node = node.best_child()
+        _mcts_iteration(root)
 
-        # Expansion
-        if not node.is_fully_expanded():
-            node = node.expand()
 
-        # Simulation
-        result = simulate_random(node.board)
-
-        # Backpropagation
-        while node is not None:
-            node.visits += 1
-            node.value += result if node.board.turn == chess.WHITE else -result
-            node = node.parent
-
-def get_mcts_move(board: chess.Board, iterations: int = 1000) -> chess.Move:
+def get_mcts_move(board: chess.Board, iterations: int = 800) -> chess.Move | None:
     """
     Get the best move using Monte Carlo Tree Search.
 
     Args:
-        board: Current board state
-        iterations: Number of MCTS iterations (default 1000 for basic playability)
+        board:      Current board state
+        iterations: MCTS iterations (800 is a reasonable baseline)
 
     Returns:
-        Best move found, or None if no moves available
+        Best move found, or None if no legal moves
     """
     if board.is_game_over():
         return None
 
     root = MCTSNode(board)
 
-    # If only one move, return it immediately
-    if len(root.untried_moves) == 1:
-        return root.untried_moves[0]
+    legal = list(root.untried_moves)
+    if not legal:
+        return None
+    if len(legal) == 1:
+        return legal[0]
 
-    # Perform MCTS search
     mcts_search(root, iterations)
 
-    # Select the most visited child
-    best_child = max(root.children, key=lambda c: c.visits)
-    return best_child.move
+    if not root.children:
+        return random.choice(legal)
+
+    # c_param=0 → pure exploitation (most visited = most robust choice)
+    return root.best_child(c_param=0).move
