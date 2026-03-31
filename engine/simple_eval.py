@@ -73,27 +73,18 @@ _PST = {
     ],
 }
 
-def _get_adjacent_squares(sq: int) -> list[int]:
-    """Get all adjacent squares (8 directions) to a given square"""
-    row, col = sq // 8, sq % 8
-    adjacent = []
-    for dr in [-1, 0, 1]:
-        for dc in [-1, 0, 1]:
-            if dr == 0 and dc == 0:
-                continue
-            nr, nc = row + dr, col + dc
-            if 0 <= nr < 8 and 0 <= nc < 8:
-                adjacent.append(nr * 8 + nc)
-    return adjacent
-
-
 def _get_controlled_squares(board: chess.Board, color: bool) -> int:
-    """Count number of squares controlled by a side"""
-    count = 0
+    """Count number of squares controlled by a side (excluding King attacks)"""
+    controlled = set()
+    
     for sq in chess.SQUARES:
-        if board.is_attacked_by(color, sq):
-            count += 1
-    return count
+        piece = board.piece_at(sq)
+        if piece and piece.color == color and piece.piece_type != chess.KING:
+            # Get all squares this piece attacks
+            attacks = board.attacks(sq)
+            controlled.update(attacks)
+    
+    return len(controlled)
 
 
 def simple_eval(board: chess.Board) -> float:
@@ -117,48 +108,13 @@ def simple_eval(board: chess.Board) -> float:
             material_score -= _PIECE_VAL[piece.piece_type]
             position_score -= _PST[piece.piece_type][pst_index]
 
-    # King safety score: proportional to piece distribution around kings
-    white_king_sq = board.king(chess.WHITE)
-    black_king_sq = board.king(chess.BLACK)
-    
-    KING_SAFETY_WEIGHT = 10
-    king_safety_score = 0
-    
-    if white_king_sq:
-        adjacent_sqs = _get_adjacent_squares(white_king_sq)
-        white_friendly = 0
-        white_enemy = 0
-        for sq in adjacent_sqs:
-            if sq in board.piece_map():
-                piece = board.piece_map()[sq]
-                if piece.color == chess.WHITE:
-                    white_friendly += 1
-                else:
-                    white_enemy += 1
-        white_safety = (white_friendly - white_enemy * 1.5) * KING_SAFETY_WEIGHT
-        king_safety_score += white_safety
-    
-    if black_king_sq:
-        adjacent_sqs = _get_adjacent_squares(black_king_sq)
-        black_friendly = 0
-        black_enemy = 0
-        for sq in adjacent_sqs:
-            if sq in board.piece_map():
-                piece = board.piece_map()[sq]
-                if piece.color == chess.BLACK:
-                    black_friendly += 1
-                else:
-                    black_enemy += 1
-        black_safety = (black_enemy - black_friendly * 1.5) * KING_SAFETY_WEIGHT
-        king_safety_score += black_safety
-
     # Square control score: reward controlling more squares
     white_control = _get_controlled_squares(board, chess.WHITE)
     black_control = _get_controlled_squares(board, chess.BLACK)
     control_score = (white_control - black_control) * 5  # 5 points per controlled square
 
-    # Combined score with weights: 0.5 material + 0.15 position + 0.2 king_safety + 0.15 control
-    score = material_score * 0.5 + position_score * 0.15 + king_safety_score * 0.2 + control_score * 0.15
+    # Combined score with weights: 0.6 material + 0.2 position + 0.2 control
+    score = material_score * 0.6 + position_score * 0.2 + control_score * 0.2
 
     return float(score)
 
