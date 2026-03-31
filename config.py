@@ -11,12 +11,14 @@ class Config:
 
     SF_THREADS = 2
     SF_HASH = 256
-    SF_DEPTH = 2   
+    SF_DEPTH = 5  
     SF_AI_DEPTH = 1
 
     # Algorithm depths/iterations
-    ALPHABETA_DEPTH = 3
-    MCTS_ITERATIONS = 1200
+    ALPHABETA_DEPTH = 2
+    MCTS_ITERATIONS = 5000
+    MCTS_THREADS = 4          # Number of parallel workers (uses multiprocessing)
+    MCTS_EVAL_DEPTH = 2       # Minimax depth for leaf evaluation
 
     LOG_DIR = "logs"
     AI_THINKING_DELAY = 0
