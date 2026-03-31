@@ -2,6 +2,7 @@ import math
 import random
 import chess
 from engine.simple_eval import simple_eval
+from config import Config
 
 
 class MCTSNode:
@@ -40,10 +41,6 @@ class MCTSNode:
 
 
 def _simulate(board: chess.Board, max_moves: int = 50) -> float:
-    """
-    Random rollout from position. Returns score in [-1, 1] from WHITE's perspective.
-    Uses evaluator at cutoff so non-terminal positions are still meaningful.
-    """
     sim = board.copy()
     for _ in range(max_moves):
         if sim.is_game_over():
@@ -58,60 +55,39 @@ def _simulate(board: chess.Board, max_moves: int = 50) -> float:
             return -1.0
         return 0.0
 
-    # simple_eval() is White-centric centipawn score
     return math.tanh(simple_eval(sim) / 5.0)
 
 
 def _mcts_iteration(root: MCTSNode) -> None:
-    """One full MCTS iteration: select → expand → simulate → backpropagate."""
-
-    # --- Selection ---
     node = root
     while node.is_fully_expanded() and node.children:
         node = node.best_child()
 
-    # --- Expansion ---
     if not node.is_fully_expanded() and not node.board.is_game_over():
         node = node.expand()
 
-    # --- Simulation ---
-    white_score = _simulate(node.board)  # always White-centric
+    white_score = _simulate(node.board)  
 
-    # --- Backpropagation ---
-    # Each node stores value from its PARENT's perspective (the side that chose to go there).
-    # The parent is the position BEFORE the move, so parent.board.turn is the side that moved.
+    # Backpropagation: accumulate value from perspective of the player who made the move
     current = node
     while current is not None:
         current.visits += 1
         if current.parent is not None:
-            # parent.board.turn = side that made the move leading to current
-            if current.parent.board.turn == chess.WHITE:
-                current.value += white_score
-            else:
-                current.value += -white_score
+            # Check who made the move leading to current node
+            is_white_made_move = (current.parent.board.turn == chess.WHITE)
+            # Accumulate score from that player's perspective
+            current.value += white_score if is_white_made_move else -white_score
         current = current.parent
 
 
 def mcts_search(root: MCTSNode, iterations: int = 800) -> None:
-    """
-    Sequential MCTS — parallelising tree traversal causes race conditions
-    on visits/value without locks, which breaks UCT math entirely.
-    """
     for _ in range(iterations):
         _mcts_iteration(root)
 
 
-def get_mcts_move(board: chess.Board, iterations: int = 800) -> chess.Move | None:
-    """
-    Get the best move using Monte Carlo Tree Search.
-
-    Args:
-        board:      Current board state
-        iterations: MCTS iterations (800 is a reasonable baseline)
-
-    Returns:
-        Best move found, or None if no legal moves
-    """
+def get_mcts_move(board: chess.Board, iterations: int | None = None) -> chess.Move | None:
+    if iterations is None:
+        iterations = getattr(Config, 'MCTS_ITERATIONS', 800)
     if board.is_game_over():
         return None
 
@@ -128,5 +104,5 @@ def get_mcts_move(board: chess.Board, iterations: int = 800) -> chess.Move | Non
     if not root.children:
         return random.choice(legal)
 
-    # c_param=0 → pure exploitation (most visited = most robust choice)
-    return root.best_child(c_param=0).move
+    # Select move by visit count (most robust), not by UCT score (noisy)
+    return max(root.children, key=lambda c: c.visits).move

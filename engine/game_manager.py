@@ -36,8 +36,9 @@ class GameManager:
             self.move_times = []
 
     def update_settings(self, white=None, black=None, running=None):
-        if white: self.white_role = white
-        if black: self.black_role = black
+        valid_roles = {'alphabeta', 'mcts', 'stockfish', 'human'}
+        if white and white in valid_roles: self.white_role = white
+        if black and black in valid_roles: self.black_role = black
         if running is not None: self.is_running = running
 
     def is_ai_turn(self):

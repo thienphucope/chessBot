@@ -11,12 +11,16 @@ class Config:
 
     SF_THREADS = 2
     SF_HASH = 256
-    SF_DEPTH = 18   
+    SF_DEPTH = 2   
     SF_AI_DEPTH = 1
 
-    LOG_DIR = "logs"
-    AI_THINKING_DELAY = 0.5
+    # Algorithm depths/iterations
+    ALPHABETA_DEPTH = 3
+    MCTS_ITERATIONS = 1200
 
-    DEFAULT_WHITE_ROLE = 'human'
-    DEFAULT_BLACK_ROLE = 'dummy'
+    LOG_DIR = "logs"
+    AI_THINKING_DELAY = 0
+
+    DEFAULT_WHITE_ROLE = 'alphabeta'
+    DEFAULT_BLACK_ROLE = 'mcts'
 

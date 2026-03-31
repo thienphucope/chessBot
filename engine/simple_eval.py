@@ -1,8 +1,6 @@
 import chess
+from engine.evaluator import evaluator
 
-# ---------------------------------------------------------------------------
-# Piece values (centipawns)
-# ---------------------------------------------------------------------------
 _PIECE_VAL = {
     chess.PAWN:   100,
     chess.KNIGHT: 320,
@@ -12,11 +10,6 @@ _PIECE_VAL = {
     chess.KING:     0,
 }
 
-# ---------------------------------------------------------------------------
-# Piece-Square Tables — White's POV, index 0 = a8 (top-left), 63 = h1
-# Black automatically mirrors via chess.square_mirror()
-# ---------------------------------------------------------------------------
-# fmt: off
 _PST = {
     chess.PAWN: [
          0,  0,  0,  0,  0,  0,  0,  0,
@@ -79,44 +72,97 @@ _PST = {
          20, 30, 10,  0,  0, 10, 30, 20,
     ],
 }
-# fmt: on
+
+def _get_adjacent_squares(sq: int) -> list[int]:
+    """Get all adjacent squares (8 directions) to a given square"""
+    row, col = sq // 8, sq % 8
+    adjacent = []
+    for dr in [-1, 0, 1]:
+        for dc in [-1, 0, 1]:
+            if dr == 0 and dc == 0:
+                continue
+            nr, nc = row + dr, col + dc
+            if 0 <= nr < 8 and 0 <= nc < 8:
+                adjacent.append(nr * 8 + nc)
+    return adjacent
+
+
+def _get_controlled_squares(board: chess.Board, color: bool) -> int:
+    """Count number of squares controlled by a side"""
+    count = 0
+    for sq in chess.SQUARES:
+        if board.is_attacked_by(color, sq):
+            count += 1
+    return count
 
 
 def simple_eval(board: chess.Board) -> float:
-    """
-    Đánh giá vị trí theo góc nhìn White (centipawns / 100 = pawn units).
-    Dương = White đang tốt, Âm = Black đang tốt.
-
-    Gồm 2 thành phần:
-      1. Material: tổng giá trị quân cờ
-      2. Piece-Square Table: thưởng/phạt theo vị trí của từng quân
-    """
     if board.is_checkmate():
-        # Người vừa đi là bên KHÔNG bị chiếu hết
         return -100_000 if board.turn == chess.WHITE else 100_000
     if board.is_stalemate() or board.is_insufficient_material():
         return 0.0
 
-    score = 0
+    # Material score
+    material_score = 0
+    position_score = 0
     for sq, piece in board.piece_map().items():
-        # PST index: python-chess sq 0=a1, PST row 0 = rank 8 (a8)
-        # → dùng (63 - sq) để map a1→index 63, h8→index 0
         if piece.color == chess.WHITE:
             pst_index = 63 - sq
-            score += _PIECE_VAL[piece.piece_type] + _PST[piece.piece_type][pst_index]
+            material_score += _PIECE_VAL[piece.piece_type]
+            position_score += _PST[piece.piece_type][pst_index]
         else:
             # Black mirrors vertically
             mirrored = chess.square_mirror(sq)
             pst_index = 63 - mirrored
-            score -= _PIECE_VAL[piece.piece_type] + _PST[piece.piece_type][pst_index]
+            material_score -= _PIECE_VAL[piece.piece_type]
+            position_score -= _PST[piece.piece_type][pst_index]
+
+    # King safety score: proportional to piece distribution around kings
+    white_king_sq = board.king(chess.WHITE)
+    black_king_sq = board.king(chess.BLACK)
+    
+    KING_SAFETY_WEIGHT = 10
+    king_safety_score = 0
+    
+    if white_king_sq:
+        adjacent_sqs = _get_adjacent_squares(white_king_sq)
+        white_friendly = 0
+        white_enemy = 0
+        for sq in adjacent_sqs:
+            if sq in board.piece_map():
+                piece = board.piece_map()[sq]
+                if piece.color == chess.WHITE:
+                    white_friendly += 1
+                else:
+                    white_enemy += 1
+        white_safety = (white_friendly - white_enemy * 1.5) * KING_SAFETY_WEIGHT
+        king_safety_score += white_safety
+    
+    if black_king_sq:
+        adjacent_sqs = _get_adjacent_squares(black_king_sq)
+        black_friendly = 0
+        black_enemy = 0
+        for sq in adjacent_sqs:
+            if sq in board.piece_map():
+                piece = board.piece_map()[sq]
+                if piece.color == chess.BLACK:
+                    black_friendly += 1
+                else:
+                    black_enemy += 1
+        black_safety = (black_enemy - black_friendly * 1.5) * KING_SAFETY_WEIGHT
+        king_safety_score += black_safety
+
+    # Square control score: reward controlling more squares
+    white_control = _get_controlled_squares(board, chess.WHITE)
+    black_control = _get_controlled_squares(board, chess.BLACK)
+    control_score = (white_control - black_control) * 5  # 5 points per controlled square
+
+    # Combined score with weights: 0.5 material + 0.15 position + 0.2 king_safety + 0.15 control
+    score = material_score * 0.5 + position_score * 0.15 + king_safety_score * 0.2 + control_score * 0.15
 
     return float(score)
 
 
 def simple_eval_for_side(board: chess.Board) -> float:
-    """
-    Wrapper trả về score theo góc nhìn của side to move.
-    Dùng trực tiếp trong Negamax (alphabeta) và MCTS rollout.
-    """
     s = simple_eval(board)
     return s if board.turn == chess.WHITE else -s

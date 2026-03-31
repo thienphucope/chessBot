@@ -31,9 +31,7 @@
                 <h3 class="side-white">⚪ Quân TRẮNG</h3>
                 <select id="white-role">
                     <option value="human">Người chơi</option>
-                    <option value="dummy">Bot: Dummy (Random)</option>
-                    <option value="stockfish">Bot: Stockfish</option>
-                    <option value="alphabeta">Bot: Alpha-Beta</option>
+                    <option value="alphabeta" selected>Bot: Alpha-Beta</option>
                     <option value="mcts">Bot: MCTS</option>
                 </select>
             </div>
@@ -42,10 +40,8 @@
                 <h3 class="side-black">⚫ Quân ĐEN</h3>
                 <select id="black-role">
                     <option value="human">Người chơi</option>
-                    <option value="dummy" selected>Bot: Dummy (Random)</option>
-                    <option value="stockfish">Bot: Stockfish</option>
                     <option value="alphabeta">Bot: Alpha-Beta</option>
-                    <option value="mcts">Bot: MCTS</option>
+                    <option value="mcts" selected>Bot: MCTS</option>
                 </select>
             </div>
 
@@ -58,7 +54,7 @@
             <div class="control-group">
                 <h3>AI Delay</h3>
                 <div class="inline-control">
-                    <input id="ai-delay-input" type="number" min="0" max="10" step="0.1" value="0.5">
+                    <input id="ai-delay-input" type="number" min="0" max="10" step="0.1" value="0">
                     <button id="apply-delay-btn" class="secondary-btn" type="button">Cap nhat</button>
                 </div>
                 <p id="ai-delay-message" class="control-hint">Ap dung realtime cho luot AI ke tiep.</p>

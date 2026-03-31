@@ -1,5 +1,6 @@
 import chess
 from engine.simple_eval import simple_eval
+from config import Config
 
 # Transposition table: zobrist_hash -> (depth, score, flag)
 # flag: 'exact', 'lower', 'upper'
@@ -8,11 +9,6 @@ _TT_MAX_SIZE = 1_000_000
 
 
 def _get_score(board: chess.Board) -> float:
-    """
-    Score từ góc nhìn của side to move.
-    simple_eval() trả về White-centric
-    → flip nếu Black to move để Negamax hoạt động đúng.
-    """
     white_score = simple_eval(board)
     return white_score if board.turn == chess.WHITE else -white_score
 
@@ -34,10 +30,6 @@ _PIECE_VALUE = {
 
 
 def _move_order_score(board: chess.Board, move: chess.Move) -> int:
-    """
-    Fast heuristic score for move ordering — no evaluator call needed.
-    Higher = search first.
-    """
     score = 0
 
     # MVV-LVA: Most Valuable Victim - Least Valuable Attacker
@@ -61,10 +53,6 @@ def _move_order_score(board: chess.Board, move: chess.Move) -> int:
     return score
 
 def _quiescence(board: chess.Board, alpha: float, beta: float) -> float:
-    """
-    Search only captures/checks until quiet position.
-    Prevents horizon effect on tactical positions.
-    """
     stand_pat = _get_score(board)
 
     if stand_pat >= beta:
@@ -96,10 +84,6 @@ def alphabeta(
     alpha: float,
     beta: float,
 ) -> float:
-    """
-    Negamax Alpha-Beta with transposition table + quiescence search.
-    Score is always from the perspective of the side to move.
-    """
     key = board._transposition_key()
 
     # Transposition table lookup
@@ -145,23 +129,20 @@ def alphabeta(
             break  # Beta cutoff
 
     # Store in transposition table
-    flag = "exact" if orig_alpha < best_value < beta else ("lower" if best_value >= beta else "upper")
+    if orig_alpha < best_value < beta:
+        flag = "exact"
+    elif best_value >= beta:
+        flag = "lower"
+    else:  # best_value <= orig_alpha
+        flag = "upper"
     _tt_store(key, depth, best_value, flag)
 
     return best_value
 
 
-def get_alphabeta_move(board: chess.Board, depth: int = 3) -> chess.Move | None:
-    """
-    Get the best move using Negamax Alpha-Beta pruning.
-
-    Args:
-        board: Current board state
-        depth: Search depth (3 is solid; increase for stronger play)
-
-    Returns:
-        Best move found, or None if no legal moves
-    """
+def get_alphabeta_move(board: chess.Board, depth: int | None = None) -> chess.Move | None:
+    if depth is None:
+        depth = getattr(Config, 'ALPHABETA_DEPTH', 3)
     if board.is_game_over():
         return None
 

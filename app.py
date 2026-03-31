@@ -12,11 +12,13 @@ except (ImportError, SyntaxError, AttributeError) as e:
         SECRET_KEY = 'fallback_secret'
         ASYNC_MODE = 'threading'
         DEBUG = True
-        AI_THINKING_DELAY = 1.0
+        AI_THINKING_DELAY = 0.0
+        DEFAULT_WHITE_ROLE = 'alphabeta'
+        DEFAULT_BLACK_ROLE = 'mcts'
 
 from engine.game_manager import game_engine
 from engine.evaluator import evaluator
-from algorithms import get_random_move, get_stockfish_move, get_alphabeta_move, get_mcts_move
+from algorithms import get_alphabeta_move, get_mcts_move
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = Config.SECRET_KEY
@@ -168,20 +170,12 @@ def run_ai(task_generation):
             algo = game_engine.get_current_ai_algo()
             move_uci = None
 
-            if algo == 'stockfish':
-                move = get_stockfish_move(game_engine.board)
-                if move:
-                    move_uci = move.uci()
-            elif algo == 'alphabeta':
+            if algo == 'alphabeta':
                 move = get_alphabeta_move(game_engine.board)
                 if move:
                     move_uci = move.uci()
             elif algo == 'mcts':
                 move = get_mcts_move(game_engine.board)
-                if move:
-                    move_uci = move.uci()
-            else:  # dummy/random
-                move = get_random_move(game_engine.board)
                 if move:
                     move_uci = move.uci()
 
