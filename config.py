@@ -15,14 +15,14 @@ class Config:
     SF_AI_DEPTH = 1
 
     # Algorithm depths/iterations
-    ALPHABETA_DEPTH = 2
-    MCTS_ITERATIONS = 5000
-    MCTS_THREADS = 4          # Number of parallel workers (uses multiprocessing)
-    MCTS_EVAL_DEPTH = 2       # Minimax depth for leaf evaluation
+    ALPHABETA_DEPTH = 4       # Alpha-Beta quét cạn 4 plies (chắc chắn)
+    MCTS_ITERATIONS = 5000    # Tăng lần lặp
+    MCTS_MAX_DEPTH = 10       # Cho phép MCTS nhìn sâu hơn (12 plies)
+    MCTS_EVAL_DEPTH = 0       # Giữ 0 để nhanh
+
 
     LOG_DIR = "logs"
     AI_THINKING_DELAY = 0
 
     DEFAULT_WHITE_ROLE = 'alphabeta'
     DEFAULT_BLACK_ROLE = 'mcts'
-
