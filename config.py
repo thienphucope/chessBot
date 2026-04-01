@@ -15,10 +15,14 @@ class Config:
     SF_AI_DEPTH = 1
 
     # Algorithm depths/iterations
-    ALPHABETA_DEPTH = 4       # Alpha-Beta quét cạn 4 plies (chắc chắn)
-    MCTS_ITERATIONS = 5000    # Tăng lần lặp
-    MCTS_MAX_DEPTH = 10       # Cho phép MCTS nhìn sâu hơn (12 plies)
-    MCTS_EVAL_DEPTH = 0       # Giữ 0 để nhanh
+    ALPHABETA_DEPTH = 4       # Tăng lên 5 để bot Alpha-Beta tính toán chắc chắn hơn
+    MCTS_ITERATIONS = 5000     # Giảm số lần lặp nhưng mỗi lần lặp sẽ sâu hơn (Python chạy chậm nên 2000 là vừa)
+    MCTS_MAX_DEPTH = 8       # Độ sâu 10 là đủ để MCTS không bị "ảo tưởng" quá xa
+    MCTS_EVAL_DEPTH = 0       
+    MCTS_TEMPERATURE = 0.0    # Cực kỳ thấp để bot chỉ chọn nước đi tốt nhất mà nó tìm được
+    ALPHABETA_NOISE = 5.0     # Giảm nhiễu để bot không đi những nước "tầm bậy"
+
+
 
 
     LOG_DIR = "logs"

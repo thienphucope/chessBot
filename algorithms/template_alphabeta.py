@@ -1,4 +1,5 @@
 import chess
+import random
 from engine.simple_eval import simple_eval
 from config import Config
 
@@ -10,6 +11,12 @@ _TT_MAX_SIZE = 1_000_000
 
 def _get_score(board: chess.Board) -> float:
     white_score = simple_eval(board)
+    
+    # alpha beta thì dùng nhiễu để cộng vào hàm eval để can thiệo
+    noise_range = getattr(Config, 'ALPHABETA_NOISE', 0.0)
+    if noise_range > 0:
+        white_score += random.uniform(-noise_range, noise_range)
+        
     return white_score if board.turn == chess.WHITE else -white_score
 
 

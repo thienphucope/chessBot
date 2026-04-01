@@ -114,7 +114,7 @@ def simple_eval(board: chess.Board) -> float:
     control_score = (white_control - black_control) * 5  # 5 points per controlled square
 
     # Combined score with weights: 0.6 material + 0.2 position + 0.2 control
-    score = material_score * 0.6 + position_score * 0.2 + control_score * 0.2
+    score = material_score * 0.8 + position_score * 0.1 + control_score * 0.1
 
     return float(score)
 
