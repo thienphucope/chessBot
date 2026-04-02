@@ -11,11 +11,11 @@ class Config:
 
     SF_THREADS = 2
     SF_HASH = 256
-    SF_DEPTH = 5  
+    SF_DEPTH = 10  
     SF_AI_DEPTH = 1
 
     # Algorithm depths/iterations
-    ALPHABETA_DEPTH = 2       # Tăng lên 5 để bot Alpha-Beta tính toán chắc chắn hơn
+    ALPHABETA_DEPTH = 4       # Tăng lên 5 để bot Alpha-Beta tính toán chắc chắn hơn
     MCTS_ITERATIONS = 4000     # Giảm số lần lặp nhưng mỗi lần lặp sẽ sâu hơn (Python chạy chậm nên 2000 là vừa)
     MCTS_MAX_DEPTH = 8       # Độ sâu 10 là đủ để MCTS không bị "ảo tưởng" quá xa
     MCTS_EVAL_DEPTH = 0       

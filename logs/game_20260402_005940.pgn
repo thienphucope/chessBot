@@ -1,0 +1,16 @@
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "alphabeta"]
+[Black "mcts"]
+[Result "1-0"]
+[AvgWhiteTime "0.487s"]
+[AvgBlackTime "4.806s"]
+[AvgWhiteEval "34.39"]
+[AvgBlackEval "-40.90"]
+
+1. e4 { t:0.00s, e:0.47 } 1... c6 { t:3.32s, e:-0.64 } 2. Nc3 { t:0.00s, e:0.40 } 2... h6 { t:4.07s, e:-0.70 } 3. Nf3 { t:0.00s, e:0.70 } 3... f6 { t:4.72s, e:-3.17 } 4. Ne5 { t:2.25s, e:4.77 } 4... fxe5 { t:7.13s, e:-100.00 } 5. Qh5+ { t:0.30s, e:100.00 } 5... g6 { t:4.79s, e:-100.00 } 6. Qxg6# { t:0.37s, e:100.00
+[Summary]
+White (alphabeta): Total 2.92s, Avg 0.487s, Avg Eval 34.39
+Black (mcts): Total 24.03s, Avg 4.806s, Avg Eval -40.90 } 1-0

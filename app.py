@@ -120,7 +120,7 @@ def perform_turn(move_uci, schedule_next_ai=True, move_time=0.0):
 
     eval_after = evaluator.get_eval(game_engine.board.fen())
     is_white_turn = (turn == chess.WHITE)
-    total_time, white_total_time, black_total_time = game_engine.record_move_time(move_time, is_white_turn)
+    total_time, white_total_time, black_total_time = game_engine.record_move_time(move_time, is_white_turn, evaluation=eval_after)
     game_engine.last_move_timestamp = time.perf_counter()
 
     if game_engine.board.is_checkmate():

@@ -24,17 +24,30 @@ class ChessEvaluator:
 
     def get_eval(self, fen):
         """Lấy điểm đánh giá White-centric."""
-        if not self.sf: return 0.0
         board = chess.Board(fen)
+        
+        # Ưu tiên kiểm tra kết thúc game để trả về điểm tuyệt đối
+        if board.is_checkmate():
+            # Nếu đang là lượt Đen mà bị chiếu hết -> Trắng thắng (+100)
+            return 100.0 if board.turn == chess.BLACK else -100.0
+        if board.is_game_over(): # Hòa
+            return 0.0
+
+        if not self.sf: return 0.0
+        
         with self.lock:
             try:
                 self.sf.set_fen_position(fen)
                 data = self.sf.get_evaluation()
                 val = data['value']
+                
+                # Chuyển về White-centric
                 if board.turn == chess.BLACK: val = -val
                 
                 if data['type'] == 'cp':
                     return val / 100.0
+                
+                # Trường hợp Mate (đang trong quá trình sắp chiếu hết)
                 return 100.0 if val > 0 else -100.0
             except: 
                 return 0.0
